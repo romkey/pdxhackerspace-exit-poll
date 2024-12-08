@@ -142,7 +142,7 @@ display:
   - platform: ili9xxx
     model: ${display_model}
     dc_pin: ${display_dc_pin}
-    reset_pin: ${display_reset_pin}
+    reset_pin: ${display_rst_pin}
     cs_pin: ${display_cs_pin}
     data_rate: 40MHz
     rotation: 0
@@ -397,7 +397,7 @@ button:
 light:
   - platform: neopixelbus
     variant: ${led_chip}
-    pin: ${led_pin}
+    pin: ${led_data_pin}
     num_leds: ${led_number}
     type: ${led_order}
     id: "led_strip"
