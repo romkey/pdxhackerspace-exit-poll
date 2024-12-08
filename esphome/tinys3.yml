@@ -1,12 +1,12 @@
 substitutions:
-  i2c_sda_pin: 21
-  i2c_scl_pin: 5
-  spi_clk_pin: 9
-  spi_mosi_pin: 36
-  spi_miso_pin: 8
-  display_dc_pin: 4
-  display_cs_pin: 2
-  display_rst_pin: 3
-  led_data_pin: 7
-  led_number: 8
+  i2c_sda_pin: "21"
+  i2c_scl_pin: "5"
+  spi_clk_pin: "9"
+  spi_mosi_pin: "36"
+  spi_miso_pin: "8"
+  display_dc_pin: "4"
+  display_cs_pin: "2"
+  display_rst_pin: "3"
+  led_data_pin: "7"
+  led_number: "8"
 
