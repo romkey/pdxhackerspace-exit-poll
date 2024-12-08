@@ -74,6 +74,10 @@ The PCB is available at [OSHPark](https://oshpark.com/shared_projects/85wfS3FQ).
 
 Most of the components on the board are optional.
 
+C1 is entirely optional. It's intended to smooth power to the LED
+strip, if you use one. In practice with just a few LEDs it's
+unnecessary. We will probably drop it if we update the PCB again.
+
 If you don't want the power indicator, omit D1 and R3.
 
 If you don't want external I2C support via the Qwiic/Stemma QT
