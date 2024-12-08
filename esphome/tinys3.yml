@@ -8,5 +8,5 @@ substitutions:
   display_cs_pin: "2"
   display_rst_pin: "3"
   led_data_pin: "7"
-  led_number: "8"
+
 
