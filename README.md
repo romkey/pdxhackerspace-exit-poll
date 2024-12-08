@@ -63,6 +63,9 @@ that you solder together. We use displays with touch support - the PCB
 wires the touch pins to the CPU but the firmware currently does not
 take advantage of it.
 
+If you want to use a different resolution display you'll of course
+need to rewrite the code which puts information on the display.
+
 The PCB is available at [OSHPark](https://oshpark.com/shared_projects/85wfS3FQ).
 
 ![PCB front](pcb/0.7/front.jpg)![PCB back](pcb/0.7/back.jpg)
@@ -81,3 +84,23 @@ the right hand side, ignore it if you're not using those for expansion
 or wire them however is convenient for you if you are. You might for
 instance wire in buttons for reset and programming (BOOT).
 
+The bare minimum assembly is to solder the TinyS3 to the front of PCB
+and then solder the display to the back. Be sure that the pinout of
+the display you're using matches the pinout of the holes for its
+pins. If it doesn't, you'll need to figure out how to wire it.
+
+
+## Case
+
+The repo includes [OpenSCAD files](https://openscad.org) for a minimal
+case for a 4" display that mounts the display on a frame the snaps
+into a box that can be mounted on a wall, with a hole in the bottom
+for the USB power cable. If you use a different size display you will
+of course need to redesign the case. It also includes the `.stl` file
+for the case.
+
+To print the case, load the `.stl` file into the slicer you use with
+your 3D printer and follow your printer's instructions to slice and
+print the case. PLA and PETG are good materials for the case.
+
+![Case](case/case.png)
