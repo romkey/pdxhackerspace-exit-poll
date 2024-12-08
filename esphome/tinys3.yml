@@ -1,4 +1,4 @@
-substitions:
+substitutions:
   i2c_sda_pin: 21
   i2c_scl_pin: 5
   spi_clk_pin: 9
