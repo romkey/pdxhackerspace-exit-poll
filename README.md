@@ -1,5 +1,7 @@
 # PDX Hackerspace Exit Poll
 
+![All good](images/green.jpg)![Attention!](images/red.jpg)
+
 Exit Poll is a display that integrates with Home Assistant that lets you know about things that might need attention.
 
 At PDX Hackerspace, the last person out should check on the physical
