@@ -40,6 +40,12 @@ catch_width = 8;
 usb_cutout_width = 20;
 usb_cutout_height = 8;
 
+module catch() {
+    cube([thickness, catch_width, catch_height]);
+    translate([-1, 0, catch_height])
+      cube([thickness + 1, catch_width, 2]);
+}
+
 module cover() {
 difference() {
     union() {
@@ -62,26 +68,27 @@ difference() {
     // LED hole
   }
   
-  translate([thickness, case_height/4, thickness*2]) {
-    cube([thickness, catch_width, catch_height]);
-    translate([-1, 0, catch_height])
-      cube([thickness + 1, catch_width, 2]);
+  module left_side_catches(){
+      translate([thickness, case_height/4, thickness*2]) {
+          catch();
+      }
+      translate([thickness, 3*case_height/4, thickness*2]) {
+          catch();
+      }
   }
-  translate([thickness, 3*case_height/4, thickness*2]) {
-    cube([thickness, catch_width, catch_height]);
-    translate([-1, 0, catch_height])
-      cube([thickness + 1, catch_width, 2]);
+  
+  //Build the left side
+  left_side_catches();
+  
+  //Then the right (with mirroring)
+  translate([case_width, 0,0]) mirror([1,0,0]) {
+     left_side_catches();
   }
  
-  translate([case_width-thickness*2, case_height/4, thickness*2]) {
-    cube([thickness, catch_width, catch_height]);
-    translate([0, 0, catch_height])
-      cube([thickness + 1, catch_width, 2]);
-  }
-  translate([case_width-thickness*2, 3*case_height/4, thickness*2]) {
-    cube([thickness, catch_width, catch_height]);
-    translate([0, 0, catch_height])
-      cube([thickness + 1, catch_width, 2]);
+  //Cut out a slot for the touchscreen header pins to sit in
+  top_to_center_pin_distance = 6.5;
+  translate([case_width/2, case_height-top_to_center_pin_distance, (thickness*2)-0.5]){
+    cube([39,3,3],true);
   }
   
 
