@@ -3,6 +3,7 @@
 // https://www.aliexpress.us/item/3256804835346770.html
 $fn = 60;
 
+render_stl = 0;
 // 3.5"
 // display_width = 56;
 // display_height = 98;
@@ -187,11 +188,22 @@ module base() {
 
 
 // Render the case and box side by side about origin for easy viewing
-translate([-(case_width*1.2), 0, 0]){
-    box_big_notch();
+module main(){
+    translate([-(case_width*1.2), 0, 0]){
+        box_big_notch();
+    }
+
+    translate([(case_width*0.2), 0, 0]){
+        cover();
+    }
 }
 
-translate([(case_width*0.2), 0, 0]){
+//Hack to render a specific part
+// Use openscad -D render_stl=# -o <outfile> exit-poll.scad to render a specific part
+if(render_stl==0)
+    main();
+if(render_stl==1)
+    box_big_notch();
+if(render_stl==2)
     cover();
-}
 
