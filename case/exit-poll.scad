@@ -40,7 +40,7 @@ catch_width = 8;
 usb_cutout_width = 20;
 usb_cutout_height = 8;
 
-module face() {
+module cover() {
 difference() {
     union() {
       cube([case_width, case_height, thickness*2]);
@@ -61,7 +61,7 @@ difference() {
       
     // LED hole
   }
-
+  
   translate([thickness, case_height/4, thickness*2]) {
     cube([thickness, catch_width, catch_height]);
     translate([-1, 0, catch_height])
@@ -178,15 +178,13 @@ module base() {
   }
 }
 
-//translate([case_width*1.5, thickness, 0]) 
-// face();
 
-// box_big_notch();
+// Render the case and box side by side about origin for easy viewing
+translate([-(case_width*1.2), 0, 0]){
+    box_big_notch();
+}
 
-// base();
-
-// face();
-
-box_big_notch();
-
+translate([(case_width*0.2), 0, 0]){
+    cover();
+}
 
