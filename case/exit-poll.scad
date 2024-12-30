@@ -66,7 +66,12 @@ difference() {
     translate([case_width - (5 + hole_width_offset), case_height - (5 + hole_height_offset), 0])
       cylinder(h = thickness*2, r = hole_radius);
       
-    // LED hole
+      //Cut out a slot for the touchscreen header pins to sit in
+      top_to_center_pin_distance = 6.5;
+      
+      translate([case_width/2, case_height-         top_to_center_pin_distance, (thickness*2)-0.5]){
+        cube([39,3,3],true);
+      }
   }
   
   module left_side_catches(){
@@ -85,14 +90,6 @@ difference() {
   translate([case_width, 0,0]) mirror([1,0,0]) {
      left_side_catches();
   }
- 
-  //Cut out a slot for the touchscreen header pins to sit in
-  top_to_center_pin_distance = 6.5;
-  translate([case_width/2, case_height-top_to_center_pin_distance, (thickness*2)-0.5]){
-    cube([39,3,3],true);
-  }
-  
-
 }
 
 module box() {
