@@ -12,7 +12,7 @@ render_stl = 0;
 display_width = 61.74;
 display_height = 108.4;
 
-hole_radius = 2.5; //3.42;
+hole_radius = 1.55; //For a diameter of 3.1, 3mm+clearance for an M3 Screw
 hole_width_offset = 3.42;
 hole_height_offset = 3;
 
@@ -54,9 +54,10 @@ difference() {
       translate([-thickness, -thickness, 0])
         cube([case_width + thickness*2, case_height + thickness*2, thickness]);
       }
-
-    translate([(case_width - led_width)/2, bottom_margin+5, 0])
-      cube([led_width, led_height, thickness*2]);
+    //Cut hole for display
+    translate([(case_width - led_width)/2, bottom_margin+5, -1])
+      cube([led_width, led_height, thickness*2+2]);
+    //Screw Holes
     translate([5 + hole_width_offset, 5 + hole_height_offset, 0])
       cylinder(h = thickness*2, r = hole_radius);
     translate([5 + hole_width_offset, case_height - (5 + hole_height_offset), 0])
@@ -65,14 +66,21 @@ difference() {
       cylinder(h = thickness*2, r = hole_radius);
     translate([case_width - (5 + hole_width_offset), case_height - (5 + hole_height_offset), 0])
       cylinder(h = thickness*2, r = hole_radius);
-      
+    
       //Cut out a slot for the touchscreen header pins to sit in
       top_to_center_pin_distance = 6.5;
       
       translate([case_width/2, case_height-         top_to_center_pin_distance, (thickness*2)-0.5]){
         cube([39,3,3],true);
       }
+      
+      //Add a lip at the bottom to keep from stressing the display to pcb connection
+      translate([case_width/2, bottom_margin+5, thickness]){
+          rotate([30,0,0]) translate([0,1,thickness*2])
+            cube([led_width, 2, thickness*4],true);
+      }
   }
+  
   
   module left_side_catches(){
       translate([thickness, case_height/4, thickness*2]) {
