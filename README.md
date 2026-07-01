@@ -56,6 +56,18 @@ wifi:
     password: "YOUR HOTSPOT PASSWORD"
 ```
 
+## Docker
+
+The repo includes a Docker compose file that will bring up ESPHome for building and deploying the firmware.
+
+You'll need Docker and the compose plugin installed on your system.
+
+To run:
+
+```
+docker compose up
+```
+
 ## Hardware
 
 We use cheap a 320x480 SPI TFT display connected to Unexpected Maker's

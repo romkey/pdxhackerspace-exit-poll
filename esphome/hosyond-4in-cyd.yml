@@ -1,0 +1,50 @@
+substitutions:
+  name: "exit-poll"
+  friendly_name: "Exit Poll"
+  led_chip: "WS2812"
+  led_order: "GRB"
+  led_number: "8"
+  display_model: "ST7796"
+  # No PSRAM on this board - use 8-bit color; mipi_spi also auto-uses a small
+  # partial buffer (renders in chunks) when no PSRAM is configured
+  display_color_depth: "8"
+  # LCD SPI bus (shared with resistive touch)
+  spi_clk_pin: "14"
+  spi_mosi_pin: "13"
+  spi_miso_pin: "12"
+  display_cs_pin: "15"
+  display_dc_pin: "2"
+  display_rst_pin: "4"      # LCD reset is really on EN; using a free pin for the driver
+  # I2C peripheral connector
+  i2c_sda_pin: "32"
+  i2c_scl_pin: "25"
+  # external LED strip - repurposed SPI-peripheral connector pin
+  led_data_pin: "21"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+    advanced:
+      # Bootloader confirmed to support this at boot ("Bootloader supports SRAM1 as IRAM")
+      sram1_as_iram: true
+      # ESP32-D0WD-V3 (rev 3.x); 3.0 is safe, trims binary size
+      minimum_chip_revision: "3.0"
+
+# Example values - safe to expose, regenerate for real deployments
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  platform: esphome
+  password: !secret ota
+
+packages:
+  # For development, use the local file:
+  exit-poll: !include exit-poll.yml
+  # exit-poll:
+  #   url: https://github.com/romkey/pdxhackerspace-exit-poll
+  #   files: [esphome/exit-poll.yml]
+  #   ref: main
+  #   refresh: 1s

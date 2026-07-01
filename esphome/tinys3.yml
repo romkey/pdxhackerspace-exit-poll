@@ -1,4 +1,11 @@
 substitutions:
+  name: "exit-poll"
+  friendly_name: "Exit Poll"
+  led_chip: "WS2812"
+  led_order: "GRB"
+  led_number: "8"
+  display_model: "ILI9488"
+  display_color_depth: "16"   # full 16-bit color (TinyS3 has PSRAM)
   i2c_sda_pin: "21"
   i2c_scl_pin: "5"
   spi_clk_pin: "9"
@@ -9,4 +16,30 @@ substitutions:
   display_rst_pin: "3"
   led_data_pin: "7"
 
+esp32:
+  board: um_tinys3
+  framework:
+    type: arduino
 
+# TinyS3 has 8MB PSRAM - required for the full 16-bit display buffer
+psram:
+  mode: quad
+  speed: 80MHz
+
+# Example values - safe to expose, regenerate for real deployments
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  platform: esphome
+  password: !secret ota
+
+packages:
+  # For development, use the local file:
+  exit-poll: !include exit-poll.yml
+  # exit-poll:
+  #   url: https://github.com/romkey/pdxhackerspace-exit-poll
+  #   files: [esphome/exit-poll.yml]
+  #   ref: main
+  #   refresh: 1s
