@@ -237,7 +237,6 @@ display:
       LCARS_ROW("AV", id(section_3_av_on).state, id(section_4_av_on).state)
       LCARS_ROW("Water", id(section_3_water_running).state, id(section_4_water_running).state)
 
-
 sensor:
   - platform: homeassistant
     name: "Section 1 Doors Open"

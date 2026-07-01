@@ -3,6 +3,7 @@
 // https://www.aliexpress.us/item/3256804835346770.html
 $fn = 60;
 
+render_stl = 0;
 // 3.5"
 // display_width = 56;
 // display_height = 98;
@@ -11,7 +12,7 @@ $fn = 60;
 display_width = 61.74;
 display_height = 108.4;
 
-hole_radius = 2.5; //3.42;
+hole_radius = 1.55; //For a diameter of 3.1, 3mm+clearance for an M3 Screw
 hole_width_offset = 3.42;
 hole_height_offset = 3;
 
@@ -40,16 +41,23 @@ catch_width = 8;
 usb_cutout_width = 20;
 usb_cutout_height = 8;
 
-module face() {
+module catch() {
+    cube([thickness, catch_width, catch_height]);
+    translate([-1, 0, catch_height])
+      cube([thickness + 1, catch_width, 2]);
+}
+
+module cover() {
 difference() {
     union() {
       cube([case_width, case_height, thickness*2]);
       translate([-thickness, -thickness, 0])
         cube([case_width + thickness*2, case_height + thickness*2, thickness]);
       }
-
-    translate([(case_width - led_width)/2, bottom_margin+5, 0])
-      cube([led_width, led_height, thickness*2]);
+    //Cut hole for display
+    translate([(case_width - led_width)/2, bottom_margin+5, -1])
+      cube([led_width, led_height, thickness*2+2]);
+    //Screw Holes
     translate([5 + hole_width_offset, 5 + hole_height_offset, 0])
       cylinder(h = thickness*2, r = hole_radius);
     translate([5 + hole_width_offset, case_height - (5 + hole_height_offset), 0])
@@ -58,33 +66,38 @@ difference() {
       cylinder(h = thickness*2, r = hole_radius);
     translate([case_width - (5 + hole_width_offset), case_height - (5 + hole_height_offset), 0])
       cylinder(h = thickness*2, r = hole_radius);
+    
+      //Cut out a slot for the touchscreen header pins to sit in
+      top_to_center_pin_distance = 6.5;
       
-    // LED hole
-  }
-
-  translate([thickness, case_height/4, thickness*2]) {
-    cube([thickness, catch_width, catch_height]);
-    translate([-1, 0, catch_height])
-      cube([thickness + 1, catch_width, 2]);
-  }
-  translate([thickness, 3*case_height/4, thickness*2]) {
-    cube([thickness, catch_width, catch_height]);
-    translate([-1, 0, catch_height])
-      cube([thickness + 1, catch_width, 2]);
-  }
- 
-  translate([case_width-thickness*2, case_height/4, thickness*2]) {
-    cube([thickness, catch_width, catch_height]);
-    translate([0, 0, catch_height])
-      cube([thickness + 1, catch_width, 2]);
-  }
-  translate([case_width-thickness*2, 3*case_height/4, thickness*2]) {
-    cube([thickness, catch_width, catch_height]);
-    translate([0, 0, catch_height])
-      cube([thickness + 1, catch_width, 2]);
+      translate([case_width/2, case_height-         top_to_center_pin_distance, (thickness*2)-0.5]){
+        cube([39,3,3],true);
+      }
+      
+      //Add a lip at the bottom to keep from stressing the display to pcb connection
+      translate([case_width/2, bottom_margin+5, thickness]){
+          rotate([30,0,0]) translate([0,1,thickness*2])
+            cube([led_width, 2, thickness*4],true);
+      }
   }
   
-
+  
+  module left_side_catches(){
+      translate([thickness, case_height/4, thickness*2]) {
+          catch();
+      }
+      translate([thickness, 3*case_height/4, thickness*2]) {
+          catch();
+      }
+  }
+  
+  //Build the left side
+  left_side_catches();
+  
+  //Then the right (with mirroring)
+  translate([case_width, 0,0]) mirror([1,0,0]) {
+     left_side_catches();
+  }
 }
 
 module box() {
@@ -178,15 +191,24 @@ module base() {
   }
 }
 
-//translate([case_width*1.5, thickness, 0]) 
-// face();
 
-// box_big_notch();
+// Render the case and box side by side about origin for easy viewing
+module main(){
+    translate([-(case_width*1.2), 0, 0]){
+        box_big_notch();
+    }
 
-// base();
+    translate([(case_width*0.2), 0, 0]){
+        cover();
+    }
+}
 
-// face();
-
-box_big_notch();
-
+//Hack to render a specific part
+// Use openscad -D render_stl=# -o <outfile> exit-poll.scad to render a specific part
+if(render_stl==0)
+    main();
+if(render_stl==1)
+    box_big_notch();
+if(render_stl==2)
+    cover();
 
