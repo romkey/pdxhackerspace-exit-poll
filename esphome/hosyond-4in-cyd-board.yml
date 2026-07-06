@@ -1,0 +1,41 @@
+substitutions:
+  # LCD SPI bus (shared with resistive touch)
+  spi_clk_pin: "14"
+  spi_mosi_pin: "13"
+  spi_miso_pin: "12"
+  display_cs_pin: "15"
+  display_dc_pin: "2"
+  display_rst_pin: "4"      # LCD reset is really on EN; using a free pin for the driver
+  # I2C peripheral connector
+  i2c_sda_pin: "32"
+  i2c_scl_pin: "25"
+
+# Backlight (IO27) - Hosyond-specific, keep display lit
+output:
+  - platform: gpio
+    pin: "27"
+    id: display_backlight_output
+
+light:
+  - platform: binary
+    name: "Display Backlight"
+    output: display_backlight_output
+    restore_mode: ALWAYS_ON
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+    advanced:
+      # Bootloader confirmed to support this at boot ("Bootloader supports SRAM1 as IRAM")
+      sram1_as_iram: true
+      # ESP32-D0WD-V3 (rev 3.x); 3.0 is safe, trims binary size
+      minimum_chip_revision: "3.0"
+
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  platform: esphome
+  password: !secret ota

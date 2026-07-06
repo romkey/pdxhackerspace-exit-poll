@@ -1,0 +1,224 @@
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  project:
+    name: "pdxhackerspace.appliances"
+    version: "0.1.0"
+
+packages:
+  wifi-diagnostics: github://romkey/esphome-lib/lib/wifi-diagnostics.yml@main
+  esp32-diagnostics: github://romkey/esphome-lib/lib/esp32.yml@main
+
+logger:
+
+api:
+  encryption:
+
+ota:
+  platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  id: wifi_id
+  use_address: ${wifi_use_address}
+
+  ap:
+    ssid: !secret wifi_ap_ssid
+    password: !secret wifi_ap_password
+
+captive_portal:
+
+web_server:
+  version: 3
+
+time:
+  - platform: sntp
+    id: canonical_time
+    servers:
+     - 0.pool.ntp.org
+     - 1.pool.ntp.org
+     - 2.pool.ntp.org
+    timezone: America/Los_Angeles
+
+font:
+  - file: 'fonts/B612-Regular.ttf'
+    id: font_40pt
+    size: 40
+  - file: 'fonts/B612-Regular.ttf'
+    id: font_60pt
+    size: 60
+
+  - file: 'fonts/materialdesignicons-webfont.ttf'
+    id: font_mdi_72pt
+    size: 72
+    glyphs:
+      - "\U000F012C" # mdi-check
+      - "\U000F072A" # mdi-washing-machine
+      - "\U000F0917" # mdi-tumble-dryer
+      - "\U000F0AAC" # mdi-dishwasher
+      - "\U000F04DE" # mdi-stove
+      - "\U000F042B" # mdi-printer-3d
+      - "\U000F05AA" # mdi-wifi-off
+
+  - file: 'fonts/materialdesignicons-webfont.ttf'
+    id: font_mdi_200pt
+    size: 200
+    glyphs:
+      - "\U000F05AA" # mdi-wifi-off
+
+color:
+  - id: my_red
+    red: 100%
+    green: 0%
+    blue: 0%
+  - id: my_green
+    red: 0%
+    green: 100%
+    blue: 0%
+  - id: my_black
+    red: 0%
+    green: 0%
+    blue: 0%
+  - id: my_white
+    red: 100%
+    green: 100%
+    blue: 100%
+
+i2c:
+  sda: ${i2c_sda_pin}
+  scl: ${i2c_scl_pin}
+  scan: True
+  frequency: 100kHz
+
+spi:
+  clk_pin: ${spi_clk_pin}
+  mosi_pin: ${spi_mosi_pin}
+  miso_pin: ${spi_miso_pin}
+  interface: hardware
+
+display:
+  # https://esphome.io/components/display/mipi_spi
+  # Landscape 3×2 grid (480×320): icon + remaining time/check per cell; bottom-right is clock.
+  - platform: mipi_spi
+    model: ${display_model}
+    dc_pin: ${display_dc_pin}
+    reset_pin: ${display_rst_pin}
+    cs_pin: ${display_cs_pin}
+    data_rate: 40MHz
+    rotation: ${display_rotation}
+    invert_colors: false
+    color_depth: ${display_color_depth}
+    update_interval: 500ms
+    lambda: |-
+      it.fill(id(my_black));
+
+      if(!id(wifi_id).is_connected()) {
+        it.print(140, 60, id(font_mdi_200pt), id(my_white), "\U000F05AA");
+        return;
+      }
+
+      // Cell layout (no borders):
+      //   washer        dryer
+      //   dishwasher    oven
+      //   3d printer    HH:MM
+
+      auto draw_remaining = [&](int idx, int icon_x, int status_right, int y,
+                                const char *icon, float state, bool clamp_dishwasher) {
+        static uint32_t done_at[5];
+        static int prev_remaining[5];
+        static bool initialized = false;
+        if(!initialized) {
+          for(int i = 0; i < 5; i++) {
+            done_at[i] = 0;
+            prev_remaining[i] = -1;
+          }
+          initialized = true;
+        }
+
+        it.print(icon_x, y, id(font_mdi_72pt), id(my_white), icon);
+        int remaining = isnan(state) ? 0 : (int) state;
+        if(clamp_dishwasher && (remaining > 15000 || remaining < 0))
+          remaining = 0;
+
+        if(remaining > 0) {
+          prev_remaining[idx] = remaining;
+          int hours = remaining / 3600;
+          int minutes = (remaining / 60) % 60;
+          if(hours)
+            it.printf(status_right, y, id(font_40pt), id(my_white), TextAlign::TOP_RIGHT, "%dh%02dm", hours, minutes);
+          else
+            it.printf(status_right, y, id(font_60pt), id(my_white), TextAlign::TOP_RIGHT, "%dm", minutes);
+          return;
+        }
+
+        if(prev_remaining[idx] > 0)
+          done_at[idx] = millis();
+        prev_remaining[idx] = 0;
+
+        // Flash the check for 3 minutes after completion, then hold steady
+        uint32_t elapsed = millis() - done_at[idx];
+        bool flashing = done_at[idx] > 0 && elapsed < 180000;
+        bool show_check = !flashing || ((millis() / 500) % 2) == 0;
+        if(show_check)
+          it.print(status_right, y, id(font_mdi_72pt), id(my_green), TextAlign::TOP_RIGHT, "\U000F012C");
+      };
+
+      const int col0_icon = 8;
+      const int col0_right = 238;
+      const int col1_icon = 248;
+      const int col1_right = 470;
+      const int row0 = 10;
+      const int row1 = 110;
+      const int row2 = 210;
+
+      draw_remaining(0, col0_icon, col0_right, row0, "\U000F072A",
+                     id(canonical_washer_remaining_time).state, false);
+      draw_remaining(1, col1_icon, col1_right, row0, "\U000F0917",
+                     id(canonical_dryer_remaining_seconds).state, false);
+      draw_remaining(2, col0_icon, col0_right, row1, "\U000F0AAC",
+                     id(canonical_dishwasher_remaining_seconds).state, true);
+      draw_remaining(3, col1_icon, col1_right, row1, "\U000F04DE",
+                     id(canonical_oven_remaining_seconds).state, false);
+      draw_remaining(4, col0_icon, col0_right, row2, "\U000F042B",
+                     id(canonical_printer_remaining_seconds).state, false);
+
+      auto now = id(canonical_time).now();
+      if(now.is_valid()) {
+        // HH:MM right-aligned in the clock cell; colon blinks without shifting digits
+        const int clock_right = col1_right;
+        it.printf(clock_right, row2, id(font_60pt), id(my_white), TextAlign::TOP_RIGHT, "%02d", now.minute);
+        if(now.second % 2 == 0)
+          it.print(clock_right - 72, row2, id(font_60pt), id(my_white), ":");
+        else
+          it.print(clock_right - 72, row2, id(font_60pt), id(my_white), " ");
+        it.printf(clock_right - 96, row2, id(font_60pt), id(my_white), TextAlign::TOP_RIGHT, "%02d", now.hour);
+      } else {
+        it.print(col1_right, row2, id(font_60pt), id(my_red), TextAlign::TOP_RIGHT, "--:--");
+      }
+
+sensor:
+  - platform: homeassistant
+    name: "Washer Remaining Time"
+    id: canonical_washer_remaining_time
+    entity_id: sensor.canonical_washer_remaining_seconds
+  - platform: homeassistant
+    name: "Dryer Remaining Time"
+    id: canonical_dryer_remaining_seconds
+    entity_id: sensor.canonical_dryer_remaining_seconds
+  - platform: homeassistant
+    name: "Dishwasher Remaining Time"
+    id: canonical_dishwasher_remaining_seconds
+    entity_id: sensor.canonical_dishwasher_remaining_seconds
+  - platform: homeassistant
+    name: "Oven Remaining Time"
+    id: canonical_oven_remaining_seconds
+    entity_id: sensor.canonical_oven_remaining_seconds
+  - platform: homeassistant
+    name: "3D Printer Remaining Time"
+    id: canonical_printer_remaining_seconds
+    entity_id: sensor.canonical_printer_remaining_seconds
+
+button:
+  - platform: restart
+    name: "Restart"

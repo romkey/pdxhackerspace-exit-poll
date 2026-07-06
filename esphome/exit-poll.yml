@@ -66,6 +66,18 @@ text_sensor:
 debug:
   update_interval: 5s
 
+globals:
+  # WireGuard status for the display icon. Defaults assume no tunnel; a config
+  # that includes the wireguard component sets these (see local.yml).
+  - id: wireguard_present
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: wireguard_connected
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
 font:
   - file: 'fonts/B612-Regular.ttf'
     id: font_12pt
@@ -83,6 +95,7 @@ font:
     glyphs:
       - "\U0000E63E" # wifi
       - "\U0000E648" # no-wifi
+      - "\U0000E0DB" # vpn_lock
 
   - file: 'fonts/MaterialIcons-Regular.ttf'
     id: font_icons_40pt
@@ -90,6 +103,7 @@ font:
     glyphs:
       - "\U0000E63E" # wifi
       - "\U0000E648" # no-wifi
+      - "\U0000E0DB" # vpn_lock
 
 color:
   - id: my_red
@@ -180,6 +194,16 @@ display:
         it.print(250, 0, id(font_icons_40pt), id(my_green), "\U0000E63E");
       } else {
         it.print(250, 0, id(font_icons_40pt), id(my_red), "\U0000E648");
+      }
+
+      // WireGuard status icon (just right of the wifi icon); slashed when down
+      if(id(wireguard_present)) {
+        if(id(wireguard_connected)) {
+          it.print(293, 8, id(font_icons), id(my_green), "\U0000E0DB");
+        } else {
+          it.print(293, 8, id(font_icons), id(my_red), "\U0000E0DB");
+          it.line(295, 10, 313, 29, id(my_red));
+        }
       }
 
       if(time.is_valid()) {
@@ -353,63 +377,122 @@ sensor:
     update_interval: 1s
 
 
+switch:
+  # Master LED power. When off, the strip is forced off regardless of anything else.
+  - platform: template
+    name: "LEDs"
+    id: leds_enabled
+    icon: "mdi:led-strip-variant"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    turn_on_action:
+      - if:
+          condition:
+            switch.is_off: leds_manual_override
+          then:
+            # system-driven: show the status color immediately
+            - light.control:
+                id: led_strip
+                effect: static
+                state: on
+                brightness: 50%
+          else:
+            # manual override active: restore the previously selected color/effect
+            - light.turn_on: led_strip
+    turn_off_action:
+      - light.turn_off: led_strip
+  # When on, stop driving the status color/effect so a manually selected
+  # color or pattern (from the buttons or Home Assistant) stays put.
+  - platform: template
+    name: "LED Manual Override"
+    id: leds_manual_override
+    icon: "mdi:hand-back-right"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_off_action:
+      # hand control back to the system: show the status color now (if LEDs are on)
+      - if:
+          condition:
+            switch.is_on: leds_enabled
+          then:
+            - light.control:
+                id: led_strip
+                effect: static
+                state: on
+                brightness: 50%
+
+
 button:
   - platform: restart
     name: "Restart"
   - platform: template
     name: "Slow pulse green"
     on_press:
-      light.turn_on:
-        id: led_strip
-        effect: "slow pulse"
-        red: 0%
-        green: 100%
-        blue: 0%
+      - switch.turn_on: leds_enabled
+      - switch.turn_on: leds_manual_override
+      - light.turn_on:
+          id: led_strip
+          effect: "slow pulse"
+          red: 0%
+          green: 100%
+          blue: 0%
   - platform: template
     name: "Red"
     on_press:
-      light.turn_on:
-        id: led_strip
-        red: 100%
-        green: 0%
-        blue: 0%
+      - switch.turn_on: leds_enabled
+      - switch.turn_on: leds_manual_override
+      - light.turn_on:
+          id: led_strip
+          red: 100%
+          green: 0%
+          blue: 0%
   - platform: template
     name: "Green"
     on_press:
-      light.turn_on:
-        id: led_strip
-        red: 0%
-        green: 100%
-        blue: 0%
+      - switch.turn_on: leds_enabled
+      - switch.turn_on: leds_manual_override
+      - light.turn_on:
+          id: led_strip
+          red: 0%
+          green: 100%
+          blue: 0%
   - platform: template
     name: "Blue"
     on_press:
-      light.turn_on:
-        id: led_strip
-        red: 0%
-        green: 0%
-        blue: 100%
+      - switch.turn_on: leds_enabled
+      - switch.turn_on: leds_manual_override
+      - light.turn_on:
+          id: led_strip
+          red: 0%
+          green: 0%
+          blue: 100%
   - platform: template
     name: "Rainbow"
     on_press:
-      light.turn_on:
-        id: led_strip
-        effect: addressable_rainbow
+      - switch.turn_on: leds_enabled
+      - switch.turn_on: leds_manual_override
+      - light.turn_on:
+          id: led_strip
+          effect: addressable_rainbow
   - platform: template
     name: "Scan"
     on_press:
-      light.turn_on:
-        id: led_strip
-        effect: addressable_scan
-        red: 100%
-        green: 0%
-        blue: 0%
+      - switch.turn_on: leds_enabled
+      - switch.turn_on: leds_manual_override
+      - light.turn_on:
+          id: led_strip
+          effect: addressable_scan
+          red: 100%
+          green: 0%
+          blue: 0%
   - platform: template
     name: "Throb"
     on_press:
-      light.turn_on:
-        id: led_strip
-        effect: throb
+      - switch.turn_on: leds_enabled
+      - switch.turn_on: leds_manual_override
+      - light.turn_on:
+          id: led_strip
+          effect: throb
 
 # https://esphome.io/components/light/
 light:
@@ -487,9 +570,21 @@ light:
 interval:
   - interval: 1sec
     then:
-      - light.control:
-          id: led_strip
-          effect: static
-          state: on
-          brightness: 50%
+      - if:
+          condition:
+            switch.is_on: leds_enabled
+          then:
+            # LEDs are enabled: drive the status color unless manually overridden
+            - if:
+                condition:
+                  switch.is_off: leds_manual_override
+                then:
+                  - light.control:
+                      id: led_strip
+                      effect: static
+                      state: on
+                      brightness: 50%
+          else:
+            # Master switch off: keep the strip dark
+            - light.turn_off: led_strip
 
