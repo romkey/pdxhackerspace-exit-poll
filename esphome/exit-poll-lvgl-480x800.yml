@@ -1,0 +1,470 @@
+# LCARS-styled LVGL UI for the exit-poll on the Guition 800x480 RGB panel, used
+# in PORTRAIT (480 wide x 800 tall). LVGL owns the rotation (rotation: 90), which
+# also rotates the touchscreen input, so the display component must NOT set a
+# rotation.
+#
+# Look: black background, amber rounded header bar (title + clock + a black
+# status "chip" holding the wifi / wireguard icons), four section panels each
+# with a colored LCARS spine/tab (section number) and four rounded "pill" status
+# bars (Doors / Locks / AV / Water), plus a decorative bottom accent bar. Bars
+# are green when 0, red when >0, gray when unknown - mirroring the original LCARS
+# display's semantics.
+#
+# ESPHome LVGL evaluates lambda/templated properties once at setup; the interval
+# at the bottom calls lvgl.widget.refresh every second to re-evaluate the clock,
+# status icons, bar colors and section counts.
+
+lvgl:
+  displays:
+    - main_display
+  touchscreens:
+    - touchscreen_id: touch_gt911
+  rotation: 90
+  default_font: font_20pt
+  bg_color: 0x000000
+
+  style_definitions:
+    - id: lcars_pill
+      radius: 32
+      pad_left: 18
+      pad_right: 18
+      border_width: 0
+      bg_opa: COVER
+    - id: lcars_tab
+      radius: 14
+      border_width: 0
+      bg_opa: COVER
+    - id: black_text
+      text_font: font_20pt
+      text_color: 0x000000
+
+  pages:
+    - id: main_page
+      bg_color: 0x000000
+      bg_opa: COVER
+      pad_all: 0
+      widgets:
+        # ---------------- Header bar (amber LCARS elbow) ----------------
+        - obj:
+            align: TOP_MID
+            y: 6
+            width: 464
+            height: 54
+            radius: 27
+            border_width: 0
+            bg_color: 0xFF9900
+            bg_opa: COVER
+            pad_all: 0
+            widgets:
+              - label:
+                  text: "EXIT POLL"
+                  styles: black_text
+                  align: LEFT_MID
+                  x: 26
+              - label:
+                  id: lbl_time
+                  styles: black_text
+                  align: CENTER
+                  text: !lambda |-
+                    auto t = id(canonical_time).now();
+                    if (!t.is_valid()) return std::string("--:--:--");
+                    return t.strftime("%H:%M:%S");
+              # Status chip: black rounded panel so the colored icons pop
+              - obj:
+                  align: RIGHT_MID
+                  x: -8
+                  width: 118
+                  height: 40
+                  radius: 20
+                  border_width: 0
+                  bg_color: 0x000000
+                  bg_opa: COVER
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        id: lbl_wg
+                        align: LEFT_MID
+                        x: 14
+                        text_font: font_icons
+                        text: !lambda |-
+                          if (!id(wireguard_present)) return std::string("");
+                          return std::string("\U0000E0DB");
+                        text_color: !lambda |-
+                          return id(wireguard_connected) ? lv_color_hex(0x00CC00)
+                                                         : lv_color_hex(0xCC0000);
+                    - label:
+                        id: lbl_wifi
+                        align: RIGHT_MID
+                        x: -14
+                        text_font: font_icons
+                        text: !lambda |-
+                          return id(wifi_id).is_connected() ? std::string("\U0000E63E")
+                                                            : std::string("\U0000E648");
+                        text_color: !lambda |-
+                          return id(wifi_id).is_connected() ? lv_color_hex(0x00CC00)
+                                                            : lv_color_hex(0xCC0000);
+
+        # ================= Section 1 (orange) =================
+        - obj:
+            styles: lcars_tab
+            align: TOP_LEFT
+            x: 8
+            y: 68
+            width: 44
+            height: 344
+            bg_color: 0xFF9900
+            pad_all: 0
+            widgets:
+              - label: { text: "SEC", align: TOP_MID, y: 14, text_font: font_12pt, text_color: 0x000000 }
+              - label: { text: "1", align: TOP_MID, y: 40, text_font: font_40pt, text_color: 0x000000 }
+        - obj:
+            id: b1d
+            styles: lcars_pill
+            align: TOP_LEFT
+            x: 60
+            y: 74
+            width: 176
+            height: 64
+            bg_color: !lambda "float v = id(section_1_doors_open).state; return std::isnan(v) ? lv_color_hex(0x666688) : (v == 0 ? lv_color_hex(0x88cc88) : lv_color_hex(0xcc6666));"
+            widgets:
+              - label: { text: "Doors", styles: black_text, align: LEFT_MID }
+              - label:
+                  id: v1d
+                  styles: black_text
+                  align: RIGHT_MID
+                  text: { format: "%.0f", args: [id(section_1_doors_open).state], if_nan: "--" }
+        - obj:
+            id: b1l
+            styles: lcars_pill
+            align: TOP_LEFT
+            x: 60
+            y: 158
+            width: 176
+            height: 64
+            bg_color: !lambda "float v = id(section_1_doors_unlocked).state; return std::isnan(v) ? lv_color_hex(0x666688) : (v == 0 ? lv_color_hex(0x88cc88) : lv_color_hex(0xcc6666));"
+            widgets:
+              - label: { text: "Locks", styles: black_text, align: LEFT_MID }
+              - label:
+                  id: v1l
+                  styles: black_text
+                  align: RIGHT_MID
+                  text: { format: "%.0f", args: [id(section_1_doors_unlocked).state], if_nan: "--" }
+        - obj:
+            id: b1a
+            styles: lcars_pill
+            align: TOP_LEFT
+            x: 60
+            y: 242
+            width: 176
+            height: 64
+            bg_color: !lambda "float v = id(section_1_av_on).state; return std::isnan(v) ? lv_color_hex(0x666688) : (v == 0 ? lv_color_hex(0x88cc88) : lv_color_hex(0xcc6666));"
+            widgets:
+              - label: { text: "AV", styles: black_text, align: LEFT_MID }
+              - label:
+                  id: v1a
+                  styles: black_text
+                  align: RIGHT_MID
+                  text: { format: "%.0f", args: [id(section_1_av_on).state], if_nan: "--" }
+        - obj:
+            id: b1w
+            styles: lcars_pill
+            align: TOP_LEFT
+            x: 60
+            y: 326
+            width: 176
+            height: 64
+            bg_color: !lambda "float v = id(section_1_water_running).state; return std::isnan(v) ? lv_color_hex(0x666688) : (v == 0 ? lv_color_hex(0x88cc88) : lv_color_hex(0xcc6666));"
+            widgets:
+              - label: { text: "Water", styles: black_text, align: LEFT_MID }
+              - label:
+                  id: v1w
+                  styles: black_text
+                  align: RIGHT_MID
+                  text: { format: "%.0f", args: [id(section_1_water_running).state], if_nan: "--" }
+
+        # ================= Section 2 (lilac) =================
+        - obj:
+            styles: lcars_tab
+            align: TOP_LEFT
+            x: 244
+            y: 68
+            width: 44
+            height: 344
+            bg_color: 0xCC99FF
+            pad_all: 0
+            widgets:
+              - label: { text: "SEC", align: TOP_MID, y: 14, text_font: font_12pt, text_color: 0x000000 }
+              - label: { text: "2", align: TOP_MID, y: 40, text_font: font_40pt, text_color: 0x000000 }
+        - obj:
+            id: b2d
+            styles: lcars_pill
+            align: TOP_LEFT
+            x: 296
+            y: 74
+            width: 176
+            height: 64
+            bg_color: !lambda "float v = id(section_2_doors_open).state; return std::isnan(v) ? lv_color_hex(0x666688) : (v == 0 ? lv_color_hex(0x88cc88) : lv_color_hex(0xcc6666));"
+            widgets:
+              - label: { text: "Doors", styles: black_text, align: LEFT_MID }
+              - label:
+                  id: v2d
+                  styles: black_text
+                  align: RIGHT_MID
+                  text: { format: "%.0f", args: [id(section_2_doors_open).state], if_nan: "--" }
+        - obj:
+            id: b2l
+            styles: lcars_pill
+            align: TOP_LEFT
+            x: 296
+            y: 158
+            width: 176
+            height: 64
+            bg_color: !lambda "float v = id(section_2_doors_unlocked).state; return std::isnan(v) ? lv_color_hex(0x666688) : (v == 0 ? lv_color_hex(0x88cc88) : lv_color_hex(0xcc6666));"
+            widgets:
+              - label: { text: "Locks", styles: black_text, align: LEFT_MID }
+              - label:
+                  id: v2l
+                  styles: black_text
+                  align: RIGHT_MID
+                  text: { format: "%.0f", args: [id(section_2_doors_unlocked).state], if_nan: "--" }
+        - obj:
+            id: b2a
+            styles: lcars_pill
+            align: TOP_LEFT
+            x: 296
+            y: 242
+            width: 176
+            height: 64
+            bg_color: !lambda "float v = id(section_2_av_on).state; return std::isnan(v) ? lv_color_hex(0x666688) : (v == 0 ? lv_color_hex(0x88cc88) : lv_color_hex(0xcc6666));"
+            widgets:
+              - label: { text: "AV", styles: black_text, align: LEFT_MID }
+              - label:
+                  id: v2a
+                  styles: black_text
+                  align: RIGHT_MID
+                  text: { format: "%.0f", args: [id(section_2_av_on).state], if_nan: "--" }
+        - obj:
+            id: b2w
+            styles: lcars_pill
+            align: TOP_LEFT
+            x: 296
+            y: 326
+            width: 176
+            height: 64
+            bg_color: !lambda "float v = id(section_2_water_running).state; return std::isnan(v) ? lv_color_hex(0x666688) : (v == 0 ? lv_color_hex(0x88cc88) : lv_color_hex(0xcc6666));"
+            widgets:
+              - label: { text: "Water", styles: black_text, align: LEFT_MID }
+              - label:
+                  id: v2w
+                  styles: black_text
+                  align: RIGHT_MID
+                  text: { format: "%.0f", args: [id(section_2_water_running).state], if_nan: "--" }
+
+        # ================= Section 3 (sky) =================
+        - obj:
+            styles: lcars_tab
+            align: TOP_LEFT
+            x: 8
+            y: 420
+            width: 44
+            height: 344
+            bg_color: 0x99CCFF
+            pad_all: 0
+            widgets:
+              - label: { text: "SEC", align: TOP_MID, y: 14, text_font: font_12pt, text_color: 0x000000 }
+              - label: { text: "3", align: TOP_MID, y: 40, text_font: font_40pt, text_color: 0x000000 }
+        - obj:
+            id: b3d
+            styles: lcars_pill
+            align: TOP_LEFT
+            x: 60
+            y: 426
+            width: 176
+            height: 64
+            bg_color: !lambda "float v = id(section_3_doors_open).state; return std::isnan(v) ? lv_color_hex(0x666688) : (v == 0 ? lv_color_hex(0x88cc88) : lv_color_hex(0xcc6666));"
+            widgets:
+              - label: { text: "Doors", styles: black_text, align: LEFT_MID }
+              - label:
+                  id: v3d
+                  styles: black_text
+                  align: RIGHT_MID
+                  text: { format: "%.0f", args: [id(section_3_doors_open).state], if_nan: "--" }
+        - obj:
+            id: b3l
+            styles: lcars_pill
+            align: TOP_LEFT
+            x: 60
+            y: 510
+            width: 176
+            height: 64
+            bg_color: !lambda "float v = id(section_3_doors_unlocked).state; return std::isnan(v) ? lv_color_hex(0x666688) : (v == 0 ? lv_color_hex(0x88cc88) : lv_color_hex(0xcc6666));"
+            widgets:
+              - label: { text: "Locks", styles: black_text, align: LEFT_MID }
+              - label:
+                  id: v3l
+                  styles: black_text
+                  align: RIGHT_MID
+                  text: { format: "%.0f", args: [id(section_3_doors_unlocked).state], if_nan: "--" }
+        - obj:
+            id: b3a
+            styles: lcars_pill
+            align: TOP_LEFT
+            x: 60
+            y: 594
+            width: 176
+            height: 64
+            bg_color: !lambda "float v = id(section_3_av_on).state; return std::isnan(v) ? lv_color_hex(0x666688) : (v == 0 ? lv_color_hex(0x88cc88) : lv_color_hex(0xcc6666));"
+            widgets:
+              - label: { text: "AV", styles: black_text, align: LEFT_MID }
+              - label:
+                  id: v3a
+                  styles: black_text
+                  align: RIGHT_MID
+                  text: { format: "%.0f", args: [id(section_3_av_on).state], if_nan: "--" }
+        - obj:
+            id: b3w
+            styles: lcars_pill
+            align: TOP_LEFT
+            x: 60
+            y: 678
+            width: 176
+            height: 64
+            bg_color: !lambda "float v = id(section_3_water_running).state; return std::isnan(v) ? lv_color_hex(0x666688) : (v == 0 ? lv_color_hex(0x88cc88) : lv_color_hex(0xcc6666));"
+            widgets:
+              - label: { text: "Water", styles: black_text, align: LEFT_MID }
+              - label:
+                  id: v3w
+                  styles: black_text
+                  align: RIGHT_MID
+                  text: { format: "%.0f", args: [id(section_3_water_running).state], if_nan: "--" }
+
+        # ================= Section 4 (butterscotch) =================
+        - obj:
+            styles: lcars_tab
+            align: TOP_LEFT
+            x: 244
+            y: 420
+            width: 44
+            height: 344
+            bg_color: 0xFFCC66
+            pad_all: 0
+            widgets:
+              - label: { text: "SEC", align: TOP_MID, y: 14, text_font: font_12pt, text_color: 0x000000 }
+              - label: { text: "4", align: TOP_MID, y: 40, text_font: font_40pt, text_color: 0x000000 }
+        - obj:
+            id: b4d
+            styles: lcars_pill
+            align: TOP_LEFT
+            x: 296
+            y: 426
+            width: 176
+            height: 64
+            bg_color: !lambda "float v = id(section_4_doors_open).state; return std::isnan(v) ? lv_color_hex(0x666688) : (v == 0 ? lv_color_hex(0x88cc88) : lv_color_hex(0xcc6666));"
+            widgets:
+              - label: { text: "Doors", styles: black_text, align: LEFT_MID }
+              - label:
+                  id: v4d
+                  styles: black_text
+                  align: RIGHT_MID
+                  text: { format: "%.0f", args: [id(section_4_doors_open).state], if_nan: "--" }
+        - obj:
+            id: b4l
+            styles: lcars_pill
+            align: TOP_LEFT
+            x: 296
+            y: 510
+            width: 176
+            height: 64
+            bg_color: !lambda "float v = id(section_4_doors_unlocked).state; return std::isnan(v) ? lv_color_hex(0x666688) : (v == 0 ? lv_color_hex(0x88cc88) : lv_color_hex(0xcc6666));"
+            widgets:
+              - label: { text: "Locks", styles: black_text, align: LEFT_MID }
+              - label:
+                  id: v4l
+                  styles: black_text
+                  align: RIGHT_MID
+                  text: { format: "%.0f", args: [id(section_4_doors_unlocked).state], if_nan: "--" }
+        - obj:
+            id: b4a
+            styles: lcars_pill
+            align: TOP_LEFT
+            x: 296
+            y: 594
+            width: 176
+            height: 64
+            bg_color: !lambda "float v = id(section_4_av_on).state; return std::isnan(v) ? lv_color_hex(0x666688) : (v == 0 ? lv_color_hex(0x88cc88) : lv_color_hex(0xcc6666));"
+            widgets:
+              - label: { text: "AV", styles: black_text, align: LEFT_MID }
+              - label:
+                  id: v4a
+                  styles: black_text
+                  align: RIGHT_MID
+                  text: { format: "%.0f", args: [id(section_4_av_on).state], if_nan: "--" }
+        - obj:
+            id: b4w
+            styles: lcars_pill
+            align: TOP_LEFT
+            x: 296
+            y: 678
+            width: 176
+            height: 64
+            bg_color: !lambda "float v = id(section_4_water_running).state; return std::isnan(v) ? lv_color_hex(0x666688) : (v == 0 ? lv_color_hex(0x88cc88) : lv_color_hex(0xcc6666));"
+            widgets:
+              - label: { text: "Water", styles: black_text, align: LEFT_MID }
+              - label:
+                  id: v4w
+                  styles: black_text
+                  align: RIGHT_MID
+                  text: { format: "%.0f", args: [id(section_4_water_running).state], if_nan: "--" }
+
+        # ---------------- Bottom accent bar ----------------
+        - obj:
+            align: TOP_MID
+            y: 772
+            width: 464
+            height: 18
+            radius: 9
+            border_width: 0
+            bg_color: 0xCC99FF
+            bg_opa: COVER
+
+# Re-evaluate all templated widget properties once a second so the clock,
+# status icons and section bars stay current.
+interval:
+  - interval: 1s
+    then:
+      - lvgl.widget.refresh:
+          - lbl_time
+          - lbl_wifi
+          - lbl_wg
+          - b1d
+          - v1d
+          - b1l
+          - v1l
+          - b1a
+          - v1a
+          - b1w
+          - v1w
+          - b2d
+          - v2d
+          - b2l
+          - v2l
+          - b2a
+          - v2a
+          - b2w
+          - v2w
+          - b3d
+          - v3d
+          - b3l
+          - v3l
+          - b3a
+          - v3a
+          - b3w
+          - v3w
+          - b4d
+          - v4d
+          - b4l
+          - v4l
+          - b4a
+          - v4a
+          - b4w
+          - v4w

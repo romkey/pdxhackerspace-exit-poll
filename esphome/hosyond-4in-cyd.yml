@@ -13,6 +13,7 @@ substitutions:
 
 packages:
   board: !include hosyond-4in-cyd-board.yml
+  spi-display: !include exit-poll-spi-display.yml
   # For development, use the local file:
   exit-poll: !include exit-poll.yml
   # exit-poll:

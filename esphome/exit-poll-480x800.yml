@@ -1,0 +1,28 @@
+# Exit Poll on the Guition ESP32-S3-8048S550C (JC8048W550C)
+# 5-inch IPS 800*480 RGB smart display, used in PORTRAIT (480x800).
+#
+# Hardware (esp32-s3, PSRAM, RGB panel, GT911 touch, backlight) lives in the
+# board file. The RGB panel is driven by LVGL (exit-poll-lvgl-480x800.yml, which
+# also sets rotation: 90 for portrait), so this device does NOT include
+# exit-poll-spi-display.yml - it shares the sensors/LED logic from exit-poll.yml.
+
+substitutions:
+  name: "exit-poll"
+  friendly_name: "Exit Poll"
+  # External addressable LED strip - attach to a free pin on the IO connector.
+  # Verify this against the board's exposed header before wiring.
+  led_chip: "WS2812"
+  led_order: "GRB"
+  led_number: "8"
+  led_data_pin: "18"
+
+packages:
+  board: !include guition-8048s550-board.yml
+  lvgl-ui: !include exit-poll-lvgl-480x800.yml
+  # For development, use the local file:
+  exit-poll: !include exit-poll.yml
+  # exit-poll:
+  #   url: https://github.com/romkey/pdxhackerspace-exit-poll
+  #   files: [esphome/exit-poll.yml]
+  #   ref: main
+  #   refresh: 1s

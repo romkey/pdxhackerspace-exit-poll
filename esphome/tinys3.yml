@@ -36,6 +36,7 @@ ota:
   password: !secret ota
 
 packages:
+  spi-display: !include exit-poll-spi-display.yml
   # For development, use the local file:
   exit-poll: !include exit-poll.yml
   # exit-poll:

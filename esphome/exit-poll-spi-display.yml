@@ -1,0 +1,110 @@
+# SPI display + buses for the exit-poll UI.
+#
+# Shared by the SPI-panel boards (tinys3, hosyond). It provides the I2C/SPI
+# buses and the mipi_spi LCARS display, driven by pin/model substitutions the
+# including board supplies. RGB-panel boards (e.g. guition-8048s550) define
+# their own display instead and do not include this file.
+
+i2c:
+  sda: ${i2c_sda_pin}
+  scl: ${i2c_scl_pin}
+  scan: True
+  frequency: 100kHz
+
+spi:
+  clk_pin: ${spi_clk_pin}
+  mosi_pin: ${spi_mosi_pin}
+  miso_pin: ${spi_miso_pin}
+  interface: hardware
+
+display:
+  # https://esphome.io/components/display/mipi_spi
+  - platform: mipi_spi
+    model: ${display_model}
+    dc_pin: ${display_dc_pin}
+    reset_pin: ${display_rst_pin}
+    cs_pin: ${display_cs_pin}
+    data_rate: 40MHz
+    rotation: 0
+    invert_colors: false
+    color_depth: ${display_color_depth}
+    lambda: |-
+      static bool first_draw = 1;
+
+      if(first_draw) {
+        it.fill(id(my_black));
+
+        it.image(0, 0, id(lcars_top_arc));
+      }
+
+      auto time = id(canonical_time).now();
+      if(id(wifi_id).is_connected()){
+        it.print(250, 0, id(font_icons_40pt), id(my_green), "\U0000E63E");
+      } else {
+        it.print(250, 0, id(font_icons_40pt), id(my_red), "\U0000E648");
+      }
+
+      // WireGuard status icon (just right of the wifi icon); slashed when down
+      if(id(wireguard_present)) {
+        if(id(wireguard_connected)) {
+          it.print(293, 8, id(font_icons), id(my_green), "\U0000E0DB");
+        } else {
+          it.print(293, 8, id(font_icons), id(my_red), "\U0000E0DB");
+          it.line(295, 10, 313, 29, id(my_red));
+        }
+      }
+
+      if(time.is_valid()) {
+      //  it.printf(100, 8, id(font_12pt), id(my_green), "%02d:%02d:%02d %d/%d/%d", time.hour, time.minute, time.second, time.month, time.day_of_month, time.year);
+        it.printf(130, 8, id(font_20pt), id(my_green), "%02d:%02d:%02d", time.hour, time.minute, time.second);
+      } else {
+      //  it.print(100, 8, id(font_12pt), id(my_red), "--:--:-- --/--/--");
+        it.print(130, 8, id(font_20pt), id(my_red), "--:--:--");
+      }
+
+      #define LCARS_TOP(sec_a, sec_b) \
+          it.image(0, row, id(lcars_blue_arc)); \
+          it.image(159, row, id(lcars_blue_arc)); \
+          it.print(150, row, id(font_40pt), id(my_black), TextAlign::TOP_RIGHT, sec_a); \
+          it.print(310, row, id(font_40pt), id(my_black), TextAlign::TOP_RIGHT, sec_b); \
+          row += 40;
+
+      #define LCARS_ROW(label, state1, state2) \
+          if(isnan(state1)) { \
+              it.image(0, row, id(lcars_gray_bar)); \
+          } else if(state1 == 0) { \
+              it.image(0, row, id(lcars_green_bar)); \
+          } else { \
+              it.image(0, row, id(lcars_red_bar)); \
+          } \
+          if(isnan(state2)) { \
+              it.image(159, row, id(lcars_gray_bar)); \
+          } else if(state2 == 0) { \
+              it.image(159, row, id(lcars_green_bar)); \
+          } else { \
+              it.image(159, row, id(lcars_red_bar)); \
+          } \
+          it.print(99, row, id(font_20pt), id(my_white), TextAlign::TOP_RIGHT, label); \
+          it.print(258, row, id(font_20pt), id(my_white), TextAlign::TOP_RIGHT, label); \
+          \
+          if(!isnan(state1))  \
+              it.printf(120, row, id(font_20pt), id(my_white),  "%1.0f", state1); \
+          if(!isnan(state2))  \
+              it.printf(280, row, id(font_20pt), id(my_white), "%1.0f", state2); \
+          row += 40;
+
+      auto row = 80;
+
+      LCARS_TOP("Sec 1", "Sec 2")
+
+      LCARS_ROW("Doors", id(section_1_doors_open).state, id(section_2_doors_open).state)
+      LCARS_ROW("Locks", id(section_1_doors_unlocked).state, id(section_2_doors_unlocked).state)
+      LCARS_ROW("AV", id(section_1_av_on).state, id(section_2_av_on).state)
+      LCARS_ROW("Water", id(section_1_water_running).state, id(section_2_water_running).state)
+
+      LCARS_TOP("Sec 3", "Sec 4")
+
+      LCARS_ROW("Doors", id(section_3_doors_open).state, id(section_4_doors_open).state)
+      LCARS_ROW("Locks", id(section_3_doors_unlocked).state, id(section_4_doors_unlocked).state)
+      LCARS_ROW("AV", id(section_3_av_on).state, id(section_4_av_on).state)
+      LCARS_ROW("Water", id(section_3_water_running).state, id(section_4_water_running).state)
