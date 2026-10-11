@@ -1,0 +1,53 @@
+# Example: Exit Poll on Unexpected Maker's TinyS3 (ESP32-S3) on the Exit Poll
+# PCB, with a 320x480 ILI9488 SPI panel and an LED strip.
+#
+# Board: https://esp32s3.com/tinys3.html (ESP32-S3FN8: 8 MB flash, 8 MB
+# QSPI PSRAM, native USB). Pins follow the Exit Poll PCB in pcb/.
+
+substitutions:
+  name: exit-poll-tinys3
+  friendly_name: Exit Poll
+  comment: Exit Poll on a TinyS3 and the Exit Poll PCB
+  exit_poll_lcars_model: ILI9488
+  exit_poll_lcars_cs_pin: GPIO2
+  exit_poll_lcars_dc_pin: GPIO4
+  exit_poll_lcars_reset_pin: GPIO3
+  # Full 16-bit color (the TinyS3 has PSRAM)
+  exit_poll_lcars_color_depth: "16"
+  exit_poll_leds_pin: GPIO7
+
+esp32:
+  board: um_tinys3
+  # 8 MB flash, per the board page above.
+  flash_size: 8MB
+  framework:
+    type: esp-idf
+
+# 8 MB QSPI PSRAM - required for the full 16-bit display buffer
+psram:
+  mode: quad
+  speed: 80MHz
+
+# Logs and Improv go to the S3's native USB, the board's only USB port
+# (ESPHome's default on the S3).
+
+spi:
+  id: spi_bus
+  clk_pin: GPIO9
+  mosi_pin: GPIO36
+  miso_pin: GPIO8
+  interface: hardware
+
+# Qwiic/Stemma QT connector on the PCB.
+i2c:
+  id: i2c0
+  sda: GPIO21
+  scl: GPIO5
+  scan: true
+  frequency: 100kHz
+
+packages:
+  base: !include common/base.yaml
+  exit_poll: !include ../packages/exit-poll.yaml
+  exit_poll_leds: !include ../packages/exit-poll-leds.yaml
+  exit_poll_lcars: !include ../packages/exit-poll-lcars-320x480.yaml

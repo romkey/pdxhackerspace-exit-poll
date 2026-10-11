@@ -1,0 +1,195 @@
+# User interface package: the LCARS-style Exit Poll screen on a 320x480
+# (portrait) SPI panel driven by mipi_spi. Shows the clock, Wi-Fi and
+# WireGuard status, and the four counts for each of the four sections:
+# green when 0, red when above 0, gray when unknown.
+#
+# Requires: exit-poll.yaml, wifi id wifi_id, time id canonical_time, an spi
+# bus (id given by exit_poll_lcars_spi_id), and the pin substitutions below
+# (no defaults; the example picks pins for its board).
+#
+# Substitutions:
+#   exit_poll_lcars_model        mipi_spi model, e.g. ILI9488 or ST7796 (required)
+#   exit_poll_lcars_dc_pin       display DC pin (required)
+#   exit_poll_lcars_cs_pin       display CS pin (required)
+#   exit_poll_lcars_reset_pin    display reset pin (required)
+#   exit_poll_lcars_color_depth  "16", or "8" on boards without PSRAM (default 16)
+#   exit_poll_lcars_spi_id       spi bus id (default spi_bus)
+#   exit_poll_assets             directory holding fonts/ and images/, relative
+#                                to the device config (default ../packages/assets)
+
+substitutions:
+  exit_poll_lcars_color_depth: "16"
+  exit_poll_lcars_spi_id: spi_bus
+  exit_poll_assets: ../packages/assets
+
+font:
+  - file: '${exit_poll_assets}/fonts/B612-Regular.ttf'
+    id: font_12pt
+    size: 12
+  - file: '${exit_poll_assets}/fonts/B612-Regular.ttf'
+    id: font_20pt
+    size: 20
+  - file: '${exit_poll_assets}/fonts/B612-Regular.ttf'
+    id: font_40pt
+    size: 40
+  # https://community.home-assistant.io/t/az-touch-esp-example/383573/22
+  - file: '${exit_poll_assets}/fonts/MaterialIcons-Regular.ttf'
+    id: font_icons
+    size: 22
+    glyphs:
+      - "\U0000E63E"  # wifi
+      - "\U0000E648"  # no-wifi
+      - "\U0000E0DB"  # vpn_lock
+  - file: '${exit_poll_assets}/fonts/MaterialIcons-Regular.ttf'
+    id: font_icons_40pt
+    size: 40
+    glyphs:
+      - "\U0000E63E"  # wifi
+      - "\U0000E648"  # no-wifi
+      - "\U0000E0DB"  # vpn_lock
+
+color:
+  - id: my_red
+    red: 100%
+    green: 0%
+    blue: 0%
+  - id: my_green
+    red: 0%
+    green: 100%
+    blue: 0%
+  - id: my_blue
+    red: 0%
+    green: 0%
+    blue: 100%
+  - id: my_yellow
+    red: 100%
+    green: 100%
+    blue: 0%
+  - id: my_black
+    red: 0%
+    green: 0%
+    blue: 0%
+  - id: my_white
+    red: 100%
+    green: 100%
+    blue: 100%
+
+image:
+  - file: "${exit_poll_assets}/images/lcars-blue.png"
+    id: lcars_blue
+    type: RGB565
+  - file: "${exit_poll_assets}/images/lcars-red.png"
+    id: lcars_red
+    type: RGB565
+  - file: "${exit_poll_assets}/images/lcars-green-bar.png"
+    id: lcars_green_bar
+    type: RGB565
+  - file: "${exit_poll_assets}/images/lcars-red-bar.png"
+    id: lcars_red_bar
+    type: RGB565
+  - file: "${exit_poll_assets}/images/lcars-gray-bar.png"
+    id: lcars_gray_bar
+    type: RGB565
+  - file: "${exit_poll_assets}/images/lcars-blue-arc.png"
+    id: lcars_blue_arc
+    type: RGB565
+  - file: "${exit_poll_assets}/images/lcars-red-arc.png"
+    id: lcars_red_arc
+    type: RGB565
+  - file: "${exit_poll_assets}/images/lcars-top-arc.png"
+    id: lcars_top_arc
+    type: RGB565
+
+display:
+  # https://esphome.io/components/display/mipi_spi
+  - platform: mipi_spi
+    spi_id: ${exit_poll_lcars_spi_id}
+    model: ${exit_poll_lcars_model}
+    dc_pin: ${exit_poll_lcars_dc_pin}
+    reset_pin: ${exit_poll_lcars_reset_pin}
+    cs_pin: ${exit_poll_lcars_cs_pin}
+    data_rate: 40MHz
+    rotation: 0
+    invert_colors: false
+    color_depth: ${exit_poll_lcars_color_depth}
+    lambda: |-
+      static bool first_draw = 1;
+
+      if(first_draw) {
+        it.fill(id(my_black));
+
+        it.image(0, 0, id(lcars_top_arc));
+      }
+
+      auto time = id(canonical_time).now();
+      if(id(wifi_id).is_connected()){
+        it.print(250, 0, id(font_icons_40pt), id(my_green), "\U0000E63E");
+      } else {
+        it.print(250, 0, id(font_icons_40pt), id(my_red), "\U0000E648");
+      }
+
+      // WireGuard status icon (just right of the wifi icon); slashed when down
+      if(id(wireguard_present)) {
+        if(id(wireguard_connected)) {
+          it.print(293, 8, id(font_icons), id(my_green), "\U0000E0DB");
+        } else {
+          it.print(293, 8, id(font_icons), id(my_red), "\U0000E0DB");
+          it.line(295, 10, 313, 29, id(my_red));
+        }
+      }
+
+      if(time.is_valid()) {
+      //  it.printf(100, 8, id(font_12pt), id(my_green), "%02d:%02d:%02d %d/%d/%d",
+      //            time.hour, time.minute, time.second, time.month, time.day_of_month, time.year);
+        it.printf(130, 8, id(font_20pt), id(my_green), "%02d:%02d:%02d", time.hour, time.minute, time.second);
+      } else {
+      //  it.print(100, 8, id(font_12pt), id(my_red), "--:--:-- --/--/--");
+        it.print(130, 8, id(font_20pt), id(my_red), "--:--:--");
+      }
+
+      #define LCARS_TOP(sec_a, sec_b) \
+          it.image(0, row, id(lcars_blue_arc)); \
+          it.image(159, row, id(lcars_blue_arc)); \
+          it.print(150, row, id(font_40pt), id(my_black), TextAlign::TOP_RIGHT, sec_a); \
+          it.print(310, row, id(font_40pt), id(my_black), TextAlign::TOP_RIGHT, sec_b); \
+          row += 40;
+
+      #define LCARS_ROW(label, state1, state2) \
+          if(isnan(state1)) { \
+              it.image(0, row, id(lcars_gray_bar)); \
+          } else if(state1 == 0) { \
+              it.image(0, row, id(lcars_green_bar)); \
+          } else { \
+              it.image(0, row, id(lcars_red_bar)); \
+          } \
+          if(isnan(state2)) { \
+              it.image(159, row, id(lcars_gray_bar)); \
+          } else if(state2 == 0) { \
+              it.image(159, row, id(lcars_green_bar)); \
+          } else { \
+              it.image(159, row, id(lcars_red_bar)); \
+          } \
+          it.print(99, row, id(font_20pt), id(my_white), TextAlign::TOP_RIGHT, label); \
+          it.print(258, row, id(font_20pt), id(my_white), TextAlign::TOP_RIGHT, label); \
+          \
+          if(!isnan(state1))  \
+              it.printf(120, row, id(font_20pt), id(my_white),  "%1.0f", state1); \
+          if(!isnan(state2))  \
+              it.printf(280, row, id(font_20pt), id(my_white), "%1.0f", state2); \
+          row += 40;
+
+      auto row = 80;
+
+      LCARS_TOP("Sec 1", "Sec 2")
+
+      LCARS_ROW("Doors", id(section_1_doors_open).state, id(section_2_doors_open).state)
+      LCARS_ROW("Locks", id(section_1_doors_unlocked).state, id(section_2_doors_unlocked).state)
+      LCARS_ROW("AV", id(section_1_av_on).state, id(section_2_av_on).state)
+      LCARS_ROW("Water", id(section_1_water_running).state, id(section_2_water_running).state)
+
+      LCARS_TOP("Sec 3", "Sec 4")
+
+      LCARS_ROW("Doors", id(section_3_doors_open).state, id(section_4_doors_open).state)
+      LCARS_ROW("Locks", id(section_3_doors_unlocked).state, id(section_4_doors_unlocked).state)
+      LCARS_ROW("AV", id(section_3_av_on).state, id(section_4_av_on).state)
+      LCARS_ROW("Water", id(section_3_water_running).state, id(section_4_water_running).state)

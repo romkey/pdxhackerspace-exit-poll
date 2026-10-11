@@ -1,0 +1,56 @@
+# Board: Hosyond 4.0" 320x480 ESP32 display ("CYD"), ST7796 SPI panel with
+# resistive touch on an ESP32-32E module (ESP32-D0WD-V3, 4 MB flash, no
+# PSRAM). Same board as LCDWiki's E32R40T/E32N40T:
+# https://www.lcdwiki.com/res/E32R40T/E32R40T_E32N40T_Specification_V1.0.pdf
+#
+# Shared by the examples that use this board. Declares the chip, the
+# backlight and the spi_bus/i2c0 buses; the example adds the display package
+# and the display pins below.
+#
+# Display pins, for the example's substitutions: CS GPIO15, DC GPIO2.
+# The panel's reset is wired to EN, so the examples give mipi_spi GPIO4.
+# GPIO2, GPIO12 and GPIO15 are strapping pins; the board wires them to the
+# panel, so they are used as the board intends.
+
+esp32:
+  board: esp32dev
+  # 4 MB external QSPI flash, per the specification above.
+  flash_size: 4MB
+  framework:
+    type: esp-idf
+    advanced:
+      # Bootloader confirmed to support this at boot ("Bootloader supports SRAM1 as IRAM")
+      sram1_as_iram: true
+      # ESP32-D0WD-V3 (rev 3.x); 3.0 is safe, trims binary size
+      minimum_chip_revision: "3.0"
+
+# Logs and Improv go to UART0, which the board's USB-to-serial chip carries
+# (ESPHome's default on the original ESP32).
+
+# Backlight on IO27, high = on (specification above); keep the display lit.
+output:
+  - platform: gpio
+    pin: GPIO27
+    id: display_backlight_output
+
+light:
+  - platform: binary
+    name: "Display Backlight"
+    output: display_backlight_output
+    restore_mode: ALWAYS_ON
+
+# LCD SPI bus (shared with the resistive touch controller).
+spi:
+  id: spi_bus
+  clk_pin: GPIO14
+  mosi_pin: GPIO13
+  miso_pin: GPIO12
+  interface: hardware
+
+# I2C peripheral connector.
+i2c:
+  id: i2c0
+  sda: GPIO32
+  scl: GPIO25
+  scan: true
+  frequency: 100kHz

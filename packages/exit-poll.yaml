@@ -1,0 +1,220 @@
+# Exit Poll core: mirrors the space's "needs attention" counts from Home
+# Assistant and reduces them to a single system status.
+#
+# For each of four sections it reads four counts (doors open, doors unlocked,
+# AV equipment on, water running), sums them across sections, and publishes
+# "System Status":
+#   0  all good
+#   1  no Wi-Fi
+#   2  no Home Assistant connection
+#   3  non-urgent issues (AV on or water running)
+#   4  urgent issues (doors open or unlocked)
+# No display or LEDs here; add exit-poll-leds.yaml and a display package.
+#
+# Requires from the including config:
+#   wifi:  id: wifi_id
+#   api:   (any; the status uses global_api_server)
+#   time:  a clock with id: canonical_time
+#
+# Provides ids used by the UI packages: section_N_doors_open,
+# section_N_doors_unlocked, section_N_av_on, section_N_water_running
+# (N = 1..4), total_doors_open, total_doors_unlocked, total_av_on,
+# total_water_running, system_status, and the globals wireguard_present and
+# wireguard_connected (set them from a wireguard binary sensor if the device
+# has a tunnel; see docs/configuration.md).
+#
+# Entity names and ids are fixed rather than substitutions: the UI packages
+# reference them, the package is never included twice, and renaming them
+# would lose Home Assistant history.
+#
+# Substitutions (the Home Assistant entities each count is read from):
+#   exit_poll_section_N_doors_open_entity      default sensor.total_section_N_doors_open
+#   exit_poll_section_N_doors_unlocked_entity  default sensor.total_section_N_doors_unlocked
+#   exit_poll_section_N_av_on_entity           default sensor.total_section_N_av_on
+#   exit_poll_section_N_water_running_entity   default sensor.total_section_N_water_running
+#   exit_poll_update_interval                  how often totals and status
+#                                              are recomputed (default 1s)
+
+substitutions:
+  exit_poll_section_1_doors_open_entity: sensor.total_section_1_doors_open
+  exit_poll_section_1_doors_unlocked_entity: sensor.total_section_1_doors_unlocked
+  exit_poll_section_1_av_on_entity: sensor.total_section_1_av_on
+  exit_poll_section_1_water_running_entity: sensor.total_section_1_water_running
+  exit_poll_section_2_doors_open_entity: sensor.total_section_2_doors_open
+  exit_poll_section_2_doors_unlocked_entity: sensor.total_section_2_doors_unlocked
+  exit_poll_section_2_av_on_entity: sensor.total_section_2_av_on
+  exit_poll_section_2_water_running_entity: sensor.total_section_2_water_running
+  exit_poll_section_3_doors_open_entity: sensor.total_section_3_doors_open
+  exit_poll_section_3_doors_unlocked_entity: sensor.total_section_3_doors_unlocked
+  exit_poll_section_3_av_on_entity: sensor.total_section_3_av_on
+  exit_poll_section_3_water_running_entity: sensor.total_section_3_water_running
+  exit_poll_section_4_doors_open_entity: sensor.total_section_4_doors_open
+  exit_poll_section_4_doors_unlocked_entity: sensor.total_section_4_doors_unlocked
+  exit_poll_section_4_av_on_entity: sensor.total_section_4_av_on
+  exit_poll_section_4_water_running_entity: sensor.total_section_4_water_running
+  exit_poll_update_interval: 1s
+
+text_sensor:
+  # Local clock (from canonical_time), shown in the web UI
+  - platform: template
+    name: "Current Time"
+    id: current_time
+    icon: "mdi:clock-outline"
+    update_interval: 1s
+    lambda: |-
+      auto t = id(canonical_time).now();
+      if (!t.is_valid()) {
+        return {std::string("time not set")};
+      }
+      return {t.strftime("%Y-%m-%d %H:%M:%S")};
+
+debug:
+  update_interval: 5s
+
+globals:
+  # WireGuard status for the display icon. Defaults assume no tunnel; a config
+  # that includes the wireguard component sets these.
+  - id: wireguard_present
+    type: bool
+    restore_value: false
+    initial_value: 'false'
+  - id: wireguard_connected
+    type: bool
+    restore_value: false
+    initial_value: 'false'
+
+sensor:
+  - platform: homeassistant
+    name: "Section 1 Doors Open"
+    id: section_1_doors_open
+    entity_id: ${exit_poll_section_1_doors_open_entity}
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Section 1 AV On"
+    id: section_1_av_on
+    entity_id: ${exit_poll_section_1_av_on_entity}
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Section 1 Running Water"
+    id: section_1_water_running
+    entity_id: ${exit_poll_section_1_water_running_entity}
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Section 1 Doors Unlocked"
+    id: section_1_doors_unlocked
+    entity_id: ${exit_poll_section_1_doors_unlocked_entity}
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Section 2 Doors Open"
+    id: section_2_doors_open
+    entity_id: ${exit_poll_section_2_doors_open_entity}
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Section 2 AV On"
+    id: section_2_av_on
+    entity_id: ${exit_poll_section_2_av_on_entity}
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Section 2 Running Water"
+    id: section_2_water_running
+    entity_id: ${exit_poll_section_2_water_running_entity}
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Section 2 Doors Unlocked"
+    id: section_2_doors_unlocked
+    entity_id: ${exit_poll_section_2_doors_unlocked_entity}
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Section 3 Doors Open"
+    id: section_3_doors_open
+    entity_id: ${exit_poll_section_3_doors_open_entity}
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Section 3 AV On"
+    id: section_3_av_on
+    entity_id: ${exit_poll_section_3_av_on_entity}
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Section 3 Running Water"
+    id: section_3_water_running
+    entity_id: ${exit_poll_section_3_water_running_entity}
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Section 3 Doors Unlocked"
+    id: section_3_doors_unlocked
+    entity_id: ${exit_poll_section_3_doors_unlocked_entity}
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Section 4 Doors Open"
+    id: section_4_doors_open
+    entity_id: ${exit_poll_section_4_doors_open_entity}
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Section 4 AV On"
+    id: section_4_av_on
+    entity_id: ${exit_poll_section_4_av_on_entity}
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Section 4 Running Water"
+    id: section_4_water_running
+    entity_id: ${exit_poll_section_4_water_running_entity}
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Section 4 Doors Unlocked"
+    id: section_4_doors_unlocked
+    entity_id: ${exit_poll_section_4_doors_unlocked_entity}
+    accuracy_decimals: 0
+
+  - platform: template
+    name: "Total doors unlocked"
+    id: total_doors_unlocked
+    internal: true
+    lambda: |-
+      return id(section_1_doors_unlocked).state + id(section_2_doors_unlocked).state +
+             id(section_3_doors_unlocked).state + id(section_4_doors_unlocked).state;
+    update_interval: ${exit_poll_update_interval}
+  - platform: template
+    name: "Total doors open"
+    id: total_doors_open
+    internal: true
+    lambda: |-
+      return id(section_1_doors_open).state + id(section_2_doors_open).state +
+             id(section_3_doors_open).state + id(section_4_doors_open).state;
+    update_interval: ${exit_poll_update_interval}
+  - platform: template
+    name: "Total AV on"
+    id: total_av_on
+    internal: true
+    lambda: |-
+      return id(section_1_av_on).state + id(section_2_av_on).state +
+             id(section_3_av_on).state + id(section_4_av_on).state;
+    update_interval: ${exit_poll_update_interval}
+  - platform: template
+    name: "Total water running"
+    id: total_water_running
+    internal: true
+    lambda: |-
+      return id(section_1_water_running).state + id(section_2_water_running).state +
+             id(section_3_water_running).state + id(section_4_water_running).state;
+    update_interval: ${exit_poll_update_interval}
+
+  - platform: template
+    name: "System Status"
+    id: system_status
+    accuracy_decimals: 0
+    lambda: |-
+      if(!id(wifi_id).is_connected()){
+        return 1;
+      }
+      if(!global_api_server->is_connected()) {
+        return 2;
+      }
+      if(id(total_doors_open).state > 0 || id(total_doors_unlocked).state > 0) {
+        return 4;
+      }
+      if(id(total_av_on).state > 0 || id(total_water_running).state > 0) {
+        return 3;
+      }
+
+      return 0;
+    update_interval: ${exit_poll_update_interval}

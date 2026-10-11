@@ -1,0 +1,25 @@
+# Example: Exit Poll on the Hosyond 4" CYD (ESP32) with the SPI LCARS screen
+# and an external LED strip.
+#
+# Board facts and buses: common/hosyond-4in-cyd-board.yaml.
+
+substitutions:
+  name: exit-poll-cyd
+  friendly_name: Exit Poll
+  comment: Exit Poll on a Hosyond 4" ESP32 display
+  exit_poll_lcars_model: ST7796
+  exit_poll_lcars_cs_pin: GPIO15
+  exit_poll_lcars_dc_pin: GPIO2
+  exit_poll_lcars_reset_pin: GPIO4
+  # No PSRAM on this board - use 8-bit color; mipi_spi also auto-uses a small
+  # partial buffer (renders in chunks) when no PSRAM is configured
+  exit_poll_lcars_color_depth: "8"
+  # External LED strip on the SPI-peripheral connector's GPIO21.
+  exit_poll_leds_pin: GPIO21
+
+packages:
+  base: !include common/base.yaml
+  board: !include common/hosyond-4in-cyd-board.yaml
+  exit_poll: !include ../packages/exit-poll.yaml
+  exit_poll_leds: !include ../packages/exit-poll-leds.yaml
+  exit_poll_lcars: !include ../packages/exit-poll-lcars-320x480.yaml

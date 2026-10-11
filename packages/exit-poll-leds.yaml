@@ -1,0 +1,238 @@
+# User interface package: an addressable LED strip that shows the Exit Poll
+# system status as a color, plus switches and buttons to override it.
+#
+# Status colors (from system_status in exit-poll.yaml):
+#   0 all good, 1 no Wi-Fi (orange), 2 no Home Assistant (blue),
+#   3 non-urgent issues (yellow), 4 urgent issues (red)
+#
+# Requires: exit-poll.yaml (system_status), and the substitution
+# exit_poll_leds_pin (no default; the example picks the pin for its board).
+# Uses esp32_rmt_led_strip, so ESP32-family chips only.
+#
+# Substitutions:
+#   exit_poll_leds_pin        GPIO the strip's data line is on (required)
+#   exit_poll_leds_chipset    LED chipset (default WS2812)
+#   exit_poll_leds_rgb_order  color order (default GRB)
+#   exit_poll_leds_count      number of LEDs (default 8)
+
+substitutions:
+  exit_poll_leds_chipset: WS2812
+  exit_poll_leds_rgb_order: GRB
+  exit_poll_leds_count: "8"
+
+esphome:
+  on_boot:
+    priority: 500
+    then:
+      - light.turn_off: led_strip
+  on_shutdown:
+    priority: 500
+    then:
+      - light.turn_off: led_strip
+
+switch:
+  # Master LED power. When off, the strip is forced off regardless of anything else.
+  - platform: template
+    name: "LEDs"
+    id: leds_enabled
+    icon: "mdi:led-strip-variant"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    turn_on_action:
+      - if:
+          condition:
+            switch.is_off: leds_manual_override
+          then:
+            # system-driven: show the status color immediately
+            - light.control:
+                id: led_strip
+                effect: static
+                state: true
+                brightness: 50%
+          else:
+            # manual override active: restore the previously selected color/effect
+            - light.turn_on: led_strip
+    turn_off_action:
+      - light.turn_off: led_strip
+  # When on, stop driving the status color/effect so a manually selected
+  # color or pattern (from the buttons or Home Assistant) stays put.
+  - platform: template
+    name: "LED Manual Override"
+    id: leds_manual_override
+    icon: "mdi:hand-back-right"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_off_action:
+      # hand control back to the system: show the status color now (if LEDs are on)
+      - if:
+          condition:
+            switch.is_on: leds_enabled
+          then:
+            - light.control:
+                id: led_strip
+                effect: static
+                state: true
+                brightness: 50%
+
+button:
+  - platform: template
+    name: "Slow pulse green"
+    on_press:
+      - switch.turn_on: leds_enabled
+      - switch.turn_on: leds_manual_override
+      - light.turn_on:
+          id: led_strip
+          effect: "slow pulse"
+          red: 0%
+          green: 100%
+          blue: 0%
+  - platform: template
+    name: "Red"
+    on_press:
+      - switch.turn_on: leds_enabled
+      - switch.turn_on: leds_manual_override
+      - light.turn_on:
+          id: led_strip
+          red: 100%
+          green: 0%
+          blue: 0%
+  - platform: template
+    name: "Green"
+    on_press:
+      - switch.turn_on: leds_enabled
+      - switch.turn_on: leds_manual_override
+      - light.turn_on:
+          id: led_strip
+          red: 0%
+          green: 100%
+          blue: 0%
+  - platform: template
+    name: "Blue"
+    on_press:
+      - switch.turn_on: leds_enabled
+      - switch.turn_on: leds_manual_override
+      - light.turn_on:
+          id: led_strip
+          red: 0%
+          green: 0%
+          blue: 100%
+  - platform: template
+    name: "Rainbow"
+    on_press:
+      - switch.turn_on: leds_enabled
+      - switch.turn_on: leds_manual_override
+      - light.turn_on:
+          id: led_strip
+          effect: addressable_rainbow
+  - platform: template
+    name: "Scan"
+    on_press:
+      - switch.turn_on: leds_enabled
+      - switch.turn_on: leds_manual_override
+      - light.turn_on:
+          id: led_strip
+          effect: addressable_scan
+          red: 100%
+          green: 0%
+          blue: 0%
+  - platform: template
+    name: "Throb"
+    on_press:
+      - switch.turn_on: leds_enabled
+      - switch.turn_on: leds_manual_override
+      - light.turn_on:
+          id: led_strip
+          effect: throb
+
+# https://esphome.io/components/light/esp32_rmt_led_strip/
+light:
+  - platform: esp32_rmt_led_strip
+    chipset: ${exit_poll_leds_chipset}
+    pin: ${exit_poll_leds_pin}
+    num_leds: ${exit_poll_leds_count}
+    rgb_order: ${exit_poll_leds_rgb_order}
+    id: "led_strip"
+    effects:
+      - pulse:
+          name: "Slow Pulse"
+          update_interval: 2s
+      # system status
+      # 0 - all good (green - 0x00FF00)
+      # 1 - no wifi (orange - 0xFFA500)
+      # 2 - no Home Assistant data (blue - 0x0000FF)
+      # 3 - non-urgent issues (yellow - 0xFFFF00)
+      # 4 - urgent issues (red - 0xFF0000)
+      - addressable_lambda:
+          name: "static"
+          update_interval: 1s
+          lambda: |-
+            Color color;
+
+            switch((int)id(system_status).state) {
+              case 0:
+                color = Color(0x00, 0xFF, 0x00);
+                color = Color(0xFF, 0xFF, 0x00);
+                break;
+              case 1:
+                color = Color(0xFF, 0xAA, 0x00);
+                break;
+              case 2:
+                color = Color(0x00, 0x00, 0xFF);
+                break;
+              case 3:
+                color = Color(0xFF, 0xFF, 0x00);
+                break;
+              case 4:
+                color = Color(0xFF, 0x00, 0x00);
+                break;
+              default:
+                color = Color::BLACK;
+            }
+            it.range(0, 8) = color;
+      - addressable_rainbow:
+          name: addressable_rainbow
+      - addressable_scan:
+          name: addressable_scan
+      - addressable_lambda:
+          name: "throb"
+          update_interval: 100ms
+          lambda: |-
+            static int brightness = 0;
+            static int increment = 0x10;
+
+            if(brightness == 100)
+              increment = -0x10;
+            if(brightness == 0)
+              increment = 0x10;
+
+            brightness += increment;
+            brightness = min(brightness, 100);
+            brightness = max(brightness, 0);
+
+            // auto leds = it.leds();
+
+            for(int i = it.size() - 1; i > 0; i--) {
+              // it[i].fadeLightBy( brightness );
+              // it[i].set_brightness(brightness);
+            }
+
+interval:
+  - interval: 1sec
+    then:
+      - if:
+          condition:
+            switch.is_on: leds_enabled
+          then:
+            # LEDs are enabled: drive the status color unless manually overridden
+            - if:
+                condition:
+                  switch.is_off: leds_manual_override
+                then:
+                  - light.control:
+                      id: led_strip
+                      effect: static
+                      state: true
+                      brightness: 50%
+          else:
+            # Master switch off: keep the strip dark
+            - light.turn_off: led_strip

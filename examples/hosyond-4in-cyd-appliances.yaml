@@ -1,0 +1,23 @@
+# Example: appliance countdowns (washer and dryer, two-line layout) on the
+# Hosyond 4" CYD (ESP32).
+#
+# Board facts and buses: common/hosyond-4in-cyd-board.yaml.
+
+substitutions:
+  name: appliances-cyd
+  friendly_name: Appliances
+  comment: Washer and dryer countdowns on a Hosyond 4" ESP32 display
+  appliances_display_model: ST7796
+  appliances_display_cs_pin: GPIO15
+  appliances_display_dc_pin: GPIO2
+  appliances_display_reset_pin: GPIO4
+  # Landscape: 480 wide x 320 tall
+  appliances_display_rotation: "90"
+  # No PSRAM on this board - use 8-bit color
+  appliances_display_color_depth: "8"
+
+packages:
+  base: !include common/base.yaml
+  board: !include common/hosyond-4in-cyd-board.yaml
+  appliances: !include ../packages/appliances.yaml
+  appliances_display: !include ../packages/appliances-2-line-480x320.yaml

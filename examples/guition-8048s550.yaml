@@ -1,0 +1,109 @@
+# Example: Exit Poll on the Guition ESP32-S3-8048S550C (JC8048W550C), a
+# 5-inch IPS 800x480 RGB smart display used in PORTRAIT (480x800) with the
+# LVGL LCARS screen and an external LED strip.
+#
+# Board: ESP32-S3-WROOM-1, 16 MB flash, 8 MB octal PSRAM, 800x480 RGB
+# parallel panel (ST7262), GT911 capacitive touch on I2C, PWM backlight on
+# GPIO2. Pinout of this board family (ESP32-8048S050):
+# https://www.espboards.dev/esp32/cyd-esp32-8048s050/
+#
+# The RGB panel is driven by LVGL (packages/exit-poll-lvgl-480x800.yaml, which
+# sets rotation: 90 for portrait), so this example doesn't use the SPI LCARS
+# package.
+
+substitutions:
+  name: exit-poll-guition
+  friendly_name: Exit Poll
+  comment: Exit Poll on a Guition 5" ESP32-S3 display
+  # External addressable LED strip - attach to a free pin on the IO connector.
+  # Verify this against the board's exposed header before wiring.
+  exit_poll_leds_pin: GPIO18
+  exit_poll_lvgl_display_id: main_display
+  exit_poll_lvgl_touchscreen_id: touchscreen0
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+    advanced:
+      # Required for the RGB display buffer, which lives in PSRAM
+      execute_from_psram: true
+
+# 8MB octal PSRAM - required for the 800x480 framebuffer
+psram:
+  mode: octal
+  speed: 80MHz
+
+# The USB-C port goes through a CH340 to UART0 (GPIO43/44); the S3's native
+# USB pins (GPIO19/20) carry the touch I2C bus instead. Send logs and Improv
+# to UART0 so they reach the USB port (ESPHome defaults to native USB on S3).
+logger:
+  hardware_uart: UART0
+
+# Backlight (GPIO2, PWM via LEDC) - exposed as a dimmable light
+output:
+  - platform: ledc
+    pin: GPIO2
+    id: gpio_backlight_pwm
+    frequency: 1220Hz
+
+light:
+  - platform: monochromatic
+    id: display_backlight
+    name: "Display Backlight"
+    output: gpio_backlight_pwm
+    icon: "mdi:lightbulb-on"
+    restore_mode: ALWAYS_ON
+
+# I2C bus for the GT911 capacitive touch controller
+i2c:
+  - id: i2c0
+    sda: GPIO19
+    scl: GPIO20
+    scan: true
+
+touchscreen:
+  - platform: gt911
+    id: touchscreen0
+    i2c_id: i2c0
+    address: 0x5D
+    update_interval: 16ms
+
+# 800x480 RGB parallel panel (ST7262). Pin mapping and timings are specific to
+# the JC8048W550C; confirmed working with the ESPHome mipi_rgb platform.
+display:
+  - platform: mipi_rgb
+    id: main_display
+    model: RPI
+    color_order: RGB
+    invert_colors: true
+    byte_order: little_endian
+    update_interval: never
+    auto_clear_enabled: false
+    dimensions:
+      width: 800
+      height: 480
+    de_pin: GPIO40
+    hsync_pin: GPIO39
+    vsync_pin: GPIO41
+    pclk_pin: GPIO42
+    pclk_frequency: 16MHz
+    pclk_inverted: true
+    hsync_pulse_width: 4
+    hsync_back_porch: 8
+    hsync_front_porch: 8
+    vsync_pulse_width: 4
+    vsync_back_porch: 8
+    vsync_front_porch: 8
+    data_pins:
+      red: [45, 48, 47, 21, 14]
+      green: [5, 6, 7, 15, 16, 4]
+      blue: [8, 3, 46, 9, 1]
+
+packages:
+  base: !include common/base.yaml
+  exit_poll: !include ../packages/exit-poll.yaml
+  exit_poll_leds: !include ../packages/exit-poll-leds.yaml
+  exit_poll_lvgl: !include ../packages/exit-poll-lvgl-480x800.yaml
