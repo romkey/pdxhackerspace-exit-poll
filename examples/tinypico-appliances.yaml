@@ -22,6 +22,10 @@ esp32:
   framework:
     type: esp-idf
 
+# 4 MB PSRAM - required for the full 16-bit display buffer. esp-idf only
+# enables it when this component is present.
+psram:
+
 # Logs and Improv go to UART0, which the USB-to-serial chip carries
 # (ESPHome's default on the original ESP32).
 

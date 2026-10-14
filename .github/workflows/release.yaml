@@ -8,7 +8,9 @@ name: Release
 #    holds runs on PRs opened by a workflow until they're approved).
 # 2. Merge the PR once checks pass. The tag job tags the merge commit and
 #    the release jobs publish it.
-# Pushing a vX.Y.Z tag yourself also works.
+# Pushing a vX.Y.Z tag yourself also works. The tag job's own push uses
+# GITHUB_TOKEN, which doesn't trigger workflows, so it can't start a second
+# run that races this one.
 on:
   workflow_dispatch:
     inputs:
