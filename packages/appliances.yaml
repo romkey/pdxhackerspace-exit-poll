@@ -1,0 +1,62 @@
+# Appliance countdowns: mirrors the remaining run time, in seconds, of a
+# washer, dryer, dishwasher, oven and 3D printer from Home Assistant. A
+# display package (appliances-grid-480x320.yaml or
+# appliances-2-line-480x320.yaml) shows them.
+#
+# Requires: nothing. Provides the ids the display packages use:
+# canonical_washer_remaining_time, canonical_dryer_remaining_seconds,
+# canonical_dishwasher_remaining_seconds, canonical_oven_remaining_seconds,
+# canonical_printer_remaining_seconds. Entity names and ids are fixed rather
+# than substitutions: the display packages reference them and renaming them
+# would lose Home Assistant history.
+#
+# Substitutions (the Home Assistant entities, in seconds remaining):
+#   appliances_washer_entity      default sensor.canonical_washer_remaining_seconds
+#   appliances_dryer_entity       default sensor.canonical_dryer_remaining_seconds
+#   appliances_dishwasher_entity  default sensor.canonical_dishwasher_remaining_seconds
+#   appliances_oven_entity        default sensor.canonical_oven_remaining_seconds
+#   appliances_printer_entity     default sensor.canonical_printer_remaining_seconds
+
+substitutions:
+  appliances_washer_entity: sensor.canonical_washer_remaining_seconds
+  appliances_dryer_entity: sensor.canonical_dryer_remaining_seconds
+  appliances_dishwasher_entity: sensor.canonical_dishwasher_remaining_seconds
+  appliances_oven_entity: sensor.canonical_oven_remaining_seconds
+  appliances_printer_entity: sensor.canonical_printer_remaining_seconds
+
+sensor:
+  - platform: homeassistant
+    name: "Washer Remaining Time"
+    id: canonical_washer_remaining_time
+    entity_id: ${appliances_washer_entity}
+    device_class: duration
+    unit_of_measurement: s
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Dryer Remaining Time"
+    id: canonical_dryer_remaining_seconds
+    entity_id: ${appliances_dryer_entity}
+    device_class: duration
+    unit_of_measurement: s
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Dishwasher Remaining Time"
+    id: canonical_dishwasher_remaining_seconds
+    entity_id: ${appliances_dishwasher_entity}
+    device_class: duration
+    unit_of_measurement: s
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "Oven Remaining Time"
+    id: canonical_oven_remaining_seconds
+    entity_id: ${appliances_oven_entity}
+    device_class: duration
+    unit_of_measurement: s
+    accuracy_decimals: 0
+  - platform: homeassistant
+    name: "3D Printer Remaining Time"
+    id: canonical_printer_remaining_seconds
+    entity_id: ${appliances_printer_entity}
+    device_class: duration
+    unit_of_measurement: s
+    accuracy_decimals: 0

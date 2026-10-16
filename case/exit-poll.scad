@@ -66,22 +66,22 @@ difference() {
       cylinder(h = thickness*2, r = hole_radius);
     translate([case_width - (5 + hole_width_offset), case_height - (5 + hole_height_offset), 0])
       cylinder(h = thickness*2, r = hole_radius);
-    
+
       //Cut out a slot for the touchscreen header pins to sit in
       top_to_center_pin_distance = 6.5;
-      
+
       translate([case_width/2, case_height-         top_to_center_pin_distance, (thickness*2)-0.5]){
         cube([39,3,3],true);
       }
-      
+
       //Add a lip at the bottom to keep from stressing the display to pcb connection
       translate([case_width/2, bottom_margin+5, thickness]){
           rotate([30,0,0]) translate([0,1,thickness*2])
             cube([led_width, 2, thickness*4],true);
       }
   }
-  
-  
+
+
   module left_side_catches(){
       translate([thickness, case_height/4, thickness*2]) {
           catch();
@@ -90,10 +90,10 @@ difference() {
           catch();
       }
   }
-  
+
   //Build the left side
   left_side_catches();
-  
+
   //Then the right (with mirroring)
   translate([case_width, 0,0]) mirror([1,0,0]) {
      left_side_catches();
@@ -119,7 +119,7 @@ module box() {
         cylinder(h = thickness*2, d = screw_hole_diameter);
       translate([thickness + 2*case_width/3 - screw_hole_diameter/2, thickness + case_height*18/20, 0])
         cube([screw_hole_diameter, case_height/20, thickness]);
-        
+
       translate([(case_width + thickness*2 - usb_cutout_width)/2, 0, case_depth/4])
         cube([usb_cutout_width, thickness, usb_cutout_height]);
     }
@@ -127,11 +127,11 @@ module box() {
     translate([thickness, thickness + case_height/4, thickness+case_depth-catch_height])
       cube([thickness, catch_width, catch_height]);
      translate([thickness, thickness + 3*case_height/4, thickness+case_depth-catch_height])
-      cube([thickness, catch_width, catch_height]); 
+      cube([thickness, catch_width, catch_height]);
     translate([case_width, thickness + case_height/4, thickness+case_depth-catch_height])
       cube([thickness, catch_width, catch_height]);
      translate([case_width, thickness + 3*case_height/4, thickness+case_depth-catch_height])
-      cube([thickness, catch_width, catch_height]); 
+      cube([thickness, catch_width, catch_height]);
 }
 
 module box_big_notch() {
@@ -155,7 +155,7 @@ module box_big_notch() {
         cylinder(h = thickness*2, d = screw_hole_diameter);
       translate([thickness + 2*case_width/3 - screw_hole_diameter/2, thickness + case_height*18/20, 0])
         cube([screw_hole_diameter, case_height/20, thickness]);
-        
+
       // USB cable knockout
       translate([(case_width + thickness*2)/2, 0, case_depth/4])
         cube([case_width/2, thickness, case_depth/2]);
@@ -168,11 +168,11 @@ module box_big_notch() {
     translate([thickness, thickness + case_height/4, thickness+case_depth-catch_height])
       cube([thickness, catch_width, catch_height]);
      translate([thickness, thickness + 3*case_height/4, thickness+case_depth-catch_height])
-      cube([thickness, catch_width, catch_height]); 
+      cube([thickness, catch_width, catch_height]);
     translate([case_width, thickness + case_height/4, thickness+case_depth-catch_height])
       cube([thickness, catch_width, catch_height]);
      translate([case_width, thickness + 3*case_height/4, thickness+case_depth-catch_height])
-      cube([thickness, catch_width, catch_height]); 
+      cube([thickness, catch_width, catch_height]);
 }
 
 module base() {
@@ -181,7 +181,7 @@ module base() {
       linear_extrude(thickness) {
         scale([.5, 1.5])
           circle(d = d);
-    }    
+    }
 
   translate([0, 0, thickness])
   difference() {
@@ -211,4 +211,3 @@ if(render_stl==1)
     box_big_notch();
 if(render_stl==2)
     cover();
-

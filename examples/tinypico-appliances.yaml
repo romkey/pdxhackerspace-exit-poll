@@ -1,0 +1,62 @@
+# Example: appliance countdowns (3x2 grid) on Unexpected Maker's TinyPICO
+# (ESP32) with a 480x320 ILI9488 SPI panel.
+#
+# Board: https://www.espboards.dev/esp32/tinypico/ (ESP32-PICO-D4: 4 MB
+# flash, 4 MB PSRAM, CP2104 USB-to-serial; CH9102F on V3).
+
+substitutions:
+  name: appliances-tinypico
+  friendly_name: Appliances
+  comment: Appliance countdowns on a TinyPICO
+  appliances_display_model: ILI9488
+  appliances_display_cs_pin: GPIO5
+  appliances_display_dc_pin: GPIO4
+  appliances_display_reset_pin: GPIO14
+  appliances_display_rotation: "270"
+  appliances_display_color_depth: "16"
+
+esp32:
+  board: tinypico
+  # 4 MB flash, per the board page above.
+  flash_size: 4MB
+  framework:
+    type: esp-idf
+
+# 4 MB PSRAM - required for the full 16-bit display buffer. esp-idf only
+# enables it when this component is present.
+psram:
+
+# Logs and Improv go to UART0, which the USB-to-serial chip carries
+# (ESPHome's default on the original ESP32).
+
+spi:
+  id: spi_bus
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+  miso_pin: GPIO19
+  interface: hardware
+
+i2c:
+  id: i2c0
+  sda: GPIO21
+  scl: GPIO22
+  scan: true
+  frequency: 100kHz
+
+# Display backlight on GPIO25.
+output:
+  - platform: ledc
+    pin: GPIO25
+    id: gpio_backlight_pwm
+
+light:
+  - platform: monochromatic
+    output: gpio_backlight_pwm
+    name: "Display Backlight"
+    id: back_light
+    restore_mode: ALWAYS_ON
+
+packages:
+  base: !include common/base.yaml
+  appliances: !include ../packages/appliances.yaml
+  appliances_display: !include ../packages/appliances-grid-480x320.yaml

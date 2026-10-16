@@ -1,11 +1,32 @@
-# Managed by ESPHome Device Builder — created because this directory
-# was not already a git repository. Edit freely; it won't be regenerated.
+# ESPHome build output
 .esphome/
-.device-builder*
-.receiver_peers.json
-.offloader_pairings.json
-.DS_Store
-secrets.yaml
-secrets.yml
-local*
 
+# Firmware images contain the credentials they were built with
+*.bin
+*.elf
+*.uf2
+*.hex
+dist/
+site/
+
+# Secrets and personal device configs (either extension)
+**/secrets.yaml
+**/secrets.yml
+**/local*.yaml
+**/local*.yml
+
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# Editors
+*~
+.vscode/
+.idea/
+
+# Old ESPHome Device Builder directory (its own git repo); configs now live
+# in examples/ and packages/
+/esphome/
